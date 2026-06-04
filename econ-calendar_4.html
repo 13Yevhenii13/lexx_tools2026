@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEXX — Економічний календар</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8fafc;
+  --surface:#ffffff;
+  --surface2:#f1f5f9;
+  --surface3:#e2e8f0;
+  --border:#e2e8f0;
+  --border2:#cbd5e1;
+  --blue:#2563eb;
+  --blue-lt:#eff6ff;
+  --blue-bd:#93c5fd;
+  --green:#16a34a;
+  --green-lt:#f0fdf4;
+  --green-bd:#86efac;
+  --red:#dc2626;
+  --red-lt:#fef2f2;
+  --red-bd:#fca5a5;
+  --yellow:#d97706;
+  --yellow-lt:#fffbeb;
+  --yellow-bd:#fcd34d;
+  --purple:#7c3aed;
+  --purple-lt:#f5f3ff;
+  --orange:#ea580c;
+  --orange-lt:#fff7ed;
+  --text:#1e293b;
+  --text2:#475569;
+  --muted:#64748b;
+  --subtle:#94a3b8;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* HEADER */
+header{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.logo{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text)}
+.logo em{color:var(--blue);font-style:normal}
+.hdr-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-weight:500}
+.score-strip{margin-left:auto;display:flex;align-items:center;gap:18px}
+.sc-item{text-align:right}
+.sc-val{font-family:var(--mono);font-size:18px;color:var(--text);font-weight:600}
+.sc-lbl{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:600}
+.btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-weight:500;transition:all .15s}
+.btn-reset:hover{border-color:var(--red);color:var(--red)}
+.btn-export{background:var(--blue);border:1px solid var(--blue);color:#fff;font-size:11px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .15s;margin-right:6px}
+.btn-export:hover{opacity:.88}
+.btn-export:disabled{opacity:.4;cursor:default}
+
+/* LEGEND */
+.legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 22px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:500}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 400px;flex:1;overflow:hidden;min-height:0}
+
+/* CALENDAR */
+.cal-panel{overflow-y:auto;padding:20px 24px;background:var(--bg)}
+.cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.cal-title{font-size:24px;color:var(--text);flex:1;font-weight:700;letter-spacing:-.3px}
+.cal-title .y-frame{font-size:14px;color:var(--muted);font-weight:500;margin-left:8px}
+.nav-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:600;padding:7px 13px;cursor:pointer;border-radius:7px;transition:all .15s}
+.nav-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.nav-btn.today{background:var(--blue);color:#fff;border-color:var(--blue)}
+.nav-btn.today:hover{opacity:.88;background:var(--blue);color:#fff}
+
+.year-jump{background:var(--surface);border:1px solid var(--border);font-family:var(--sans);font-size:13px;padding:7px 11px;border-radius:7px;cursor:pointer;color:var(--text);outline:none;font-weight:500}
+.year-jump:focus{border-color:var(--blue)}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:var(--border);padding:4px;border-radius:8px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:8px 0;background:var(--surface);border-radius:5px}
+.cal-wd.we{color:var(--subtle)}
+.day-cell{min-height:70px;padding:7px 8px;border-radius:5px;cursor:default;transition:all .15s;position:relative;background:var(--surface)}
+.day-cell.empty{background:transparent}
+.day-cell.has-ev{cursor:pointer;border:1px solid transparent}
+.day-cell.has-ev:hover{background:var(--blue-lt);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.day-cell.sel{background:var(--blue-lt) !important;border:1px solid var(--blue) !important;box-shadow:0 0 0 1px var(--blue)}
+.day-cell.we-day{background:var(--surface2)}
+.day-cell.we-day.has-ev:hover{background:var(--blue-lt)}
+.day-num{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500;margin-bottom:4px}
+.day-cell.has-ev .day-num{color:var(--text);font-weight:600}
+.today-badge{background:var(--blue);color:white;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--mono);font-weight:600;margin-bottom:4px}
+.dot-row{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ev-dot.approx{border:1.5px dashed rgba(0,0,0,.4);background:transparent !important}
+.ans-badge{position:absolute;top:5px;right:5px;font-size:11px;line-height:1;font-weight:600}
+.ans-badge.ok{color:var(--green)}
+.ans-badge.partial{color:var(--yellow)}
+
+/* APPROXIMATE BANNER */
+.approx-banner{display:none;padding:10px 14px;border-radius:6px;background:var(--yellow-lt);border:1px solid var(--yellow-bd);font-size:12px;color:#92400e;margin-bottom:14px;line-height:1.5}
+.approx-banner.show{display:block}
+.approx-banner strong{color:#78350f}
+
+/* RIGHT PANEL */
+.right-panel{background:var(--surface);overflow-y:auto;border-left:1px solid var(--border);display:flex;flex-direction:column;box-shadow:-1px 0 4px rgba(0,0,0,.03)}
+.rp-idle{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+.rp-idle-icon{font-size:48px;margin-bottom:18px;opacity:.25}
+.rp-idle-text{font-size:14px;color:var(--muted);line-height:1.7;max-width:280px}
+.rp-idle-hint{font-size:12px;color:var(--subtle);margin-top:14px;line-height:1.6}
+
+/* QUESTION CARD */
+.q-card{padding:24px;display:none;flex-direction:column;animation:fu .22s ease}
+.q-card.show{display:flex}
+@keyframes fu{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+.q-step{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--blue);margin-bottom:6px}
+.q-date-lbl{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:600}
+.q-head{font-size:16px;font-weight:600;color:var(--text);line-height:1.5;margin-bottom:18px}
+.q-instruct{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+.opts{display:flex;flex-direction:column;gap:7px}
+.opt{background:var(--surface);border:1.5px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;padding:11px 14px;text-align:left;cursor:pointer;border-radius:7px;transition:all .15s;line-height:1.45;width:100%;font-weight:500}
+.opt:hover:not(:disabled){border-color:var(--blue);background:var(--blue-lt)}
+.opt:disabled{cursor:default}
+.opt.correct{background:var(--green-lt);border-color:var(--green);color:var(--green);font-weight:600}
+.opt.wrong{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+.opt.reveal{opacity:.45}
+
+/* FEEDBACK */
+.feedback{margin-top:14px;padding:13px 15px;border-radius:7px;display:none;font-size:13px;line-height:1.6}
+.feedback.show{display:block}
+.feedback.ok{background:var(--green-lt);border:1px solid var(--green-bd);color:var(--green)}
+.feedback.fail{background:var(--red-lt);border:1px solid var(--red-bd);color:var(--red)}
+.fb-h{font-weight:700;font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.fb-exp{color:var(--text);line-height:1.6;font-size:13px;font-weight:400}
+.feedback.fail .fb-exp{color:var(--text)}
+
+/* BUTTONS */
+.btn-act{padding:11px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all .15s;display:none;margin-top:14px;text-align:center}
+.btn-act.show{display:block}
+.btn-act.next-step{background:var(--blue);color:#fff}
+.btn-act.next-step:hover{opacity:.88}
+.btn-act.back{background:transparent;color:var(--muted);border:1px solid var(--border);margin-top:8px}
+.btn-act.back:hover{background:var(--surface2);color:var(--text)}
+
+/* IMPACT STEP */
+.scenario-box{background:var(--blue-lt);border:1px solid var(--blue-bd);border-left:4px solid var(--blue);padding:14px 16px;border-radius:7px;margin-bottom:16px;font-size:13px;line-height:1.6;color:var(--text)}
+.scenario-box strong{color:var(--blue);display:block;margin-bottom:5px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.impact-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.impact-row{display:flex;align-items:flex-start;gap:11px;background:var(--surface);border:1px solid var(--border);padding:11px 13px;border-radius:7px;flex-direction:column}
+.impact-top{display:flex;align-items:center;gap:11px;width:100%}
+.imp-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.imp-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.imp-btns{display:flex;gap:5px;flex-shrink:0}
+.imp-btn{font-family:var(--sans);font-size:11px;font-weight:600;padding:6px 11px;border-radius:5px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s}
+.imp-btn:hover:not(:disabled){border-color:var(--text);color:var(--text)}
+.imp-btn:disabled{cursor:default}
+.imp-btn.sel-up{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.imp-btn.sel-down{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+.imp-btn.sel-neutral{background:var(--surface2);border-color:var(--border2);color:var(--text2)}
+.imp-btn.ok-up{background:var(--green-lt);border-color:var(--green);color:var(--green);font-weight:700}
+.imp-btn.ok-down{background:var(--red-lt);border-color:var(--red);color:var(--red);font-weight:700}
+.imp-btn.ok-neutral{background:var(--surface2);border-color:var(--text2);color:var(--text);font-weight:700}
+.imp-btn.opt.wrong{background:var(--red-lt);border-color:var(--red);color:var(--red);text-decoration:line-through}
+.imp-btn.reveal{opacity:.35}
+.imp-reason{display:none;font-size:12px;color:var(--text2);line-height:1.55;padding:6px 0 0 39px}
+.imp-reason.show{display:block;animation:fr .2s ease}
+@keyframes fr{from{opacity:0;max-height:0}to{opacity:1;max-height:200px}}
+
+/* RESULT OVERLAY */
+.result-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+.result-overlay.show{display:flex}
+.r-card{background:var(--surface);border-radius:14px;padding:36px 42px;text-align:center;max-width:380px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.r-grade{font-size:36px;font-weight:800;letter-spacing:1px;margin-bottom:6px;font-family:var(--sans)}
+.r-grade.great{color:var(--green)}
+.r-grade.ok{color:var(--yellow)}
+.r-grade.bad{color:var(--red)}
+.r-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.r-stats{display:flex;gap:14px;justify-content:center;margin-bottom:22px}
+.r-stat{text-align:center}
+.r-stat-val{font-family:var(--mono);font-size:24px;font-weight:700}
+.r-stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-top:2px}
+.r-stat.green .r-stat-val{color:var(--green)}
+.r-stat.red .r-stat-val{color:var(--red)}
+.r-stat.total .r-stat-val{color:var(--text)}
+.btn-result{background:var(--blue);color:#fff;border:none;padding:11px 26px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.btn-result:hover{opacity:.88}
+
+@media (max-width: 880px){
+  .layout{grid-template-columns:1fr}
+  .right-panel{border-left:none;border-top:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">LEXX <em>International</em></div>
+    <div class="hdr-sub">Економічний календар · Симулятор</div>
+  </div>
+  <div class="score-strip">
+    <div class="sc-item">
+      <div class="sc-val"><span id="sCorrect">0</span> / <span id="sTotal">0</span></div>
+      <div class="sc-lbl">правильних</div>
+    </div>
+    <div class="sc-item">
+      <div class="sc-val" id="sPct">—</div>
+      <div class="sc-lbl">точність</div>
+    </div>
+    <button class="btn-export" onclick="exportReport()">↓ Звіт PDF</button>
+    <button class="btn-reset" onclick="resetAll()">↺ Скинути</button>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#1e293b"></div>Подія в календарі (тип — у тесті)</div>
+  <div class="leg-item"><div class="leg-dot approx" style="border:1.5px dashed #1e293b;background:transparent"></div><span style="font-style:italic">приблизна дата (для майбутніх років)</span></div>
+  <div class="leg-item" style="margin-left:auto;color:var(--subtle);font-style:italic">Натисніть день з крапкою щоб почати тренування</div>
+</div>
+
+<div class="layout">
+  <div class="cal-panel">
+    <div class="cal-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">← Попередній</button>
+      <button class="nav-btn today" onclick="goToday()">Сьогодні</button>
+      <select class="year-jump" id="yearSelect" onchange="jumpYear()"></select>
+      <button class="nav-btn" onclick="changeMonth(1)">Наступний →</button>
+      <div style="flex:1"></div>
+      <h2 class="cal-title" id="calTitle"></h2>
+    </div>
+
+    <div class="approx-banner" id="approxBanner">
+      <strong>⚠ Орієнтовні дати.</strong> Дати засідань FOMC і публікації CPI у цьому році ще не оголошені офіційно. Показані приблизні дати на основі історичних шаблонів. Перевіряйте офіційний календар ФРС та BLS ближче до події.
+    </div>
+
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="right-panel">
+    <div class="rp-idle" id="rpIdle">
+      <div class="rp-idle-icon">📅</div>
+      <div class="rp-idle-text">Виберіть день з подією у календарі, щоб почати тренування.</div>
+      <div class="rp-idle-hint">3 кроки на кожну подію: визначити подію → час публікації → вплив на ринок</div>
+    </div>
+    <div class="q-card" id="qCard"></div>
+  </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+  <div class="r-card">
+    <div class="r-grade" id="rGrade">ВІДМІННО</div>
+    <div class="r-sub" id="rSub"></div>
+    <div class="r-stats">
+      <div class="r-stat green"><div class="r-stat-val" id="rCorr">0</div><div class="r-stat-lbl">правильно</div></div>
+      <div class="r-stat red"><div class="r-stat-val" id="rWrong">0</div><div class="r-stat-lbl">помилок</div></div>
+      <div class="r-stat total"><div class="r-stat-val" id="rTotal2">0</div><div class="r-stat-lbl">всього</div></div>
+    </div>
+    <button class="btn-result" onclick="closeResult()">Закрити</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const MONTHS_UK=['Січень','Лютий','Березень','Квітень','Травень','Червень',
+                 'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+const DAYS_UK=['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+const QUAD_MONTHS=new Set([2,5,8,11]);   // Mar, Jun, Sep, Dec
+const PRIORITY=['fomc','cpi','nfp','quad','triple','claims'];
+
+const DOT_COLOR={
+  fomc:'#1e293b',
+  cpi:'#1e293b',
+  nfp:'#1e293b',
+  claims:'#1e293b',
+  quad:'#1e293b',
+  triple:'#1e293b'
+};
+
+const YEAR_START=2024;
+const YEAR_END=2029;
+
+// ═══════════════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════════════
+function thirdFriday(y,m0){
+  const first=new Date(y,m0,1);
+  let day=1;
+  while(new Date(y,m0,day).getDay()!==5) day++;
+  return day+14;   // first Friday + 2 weeks
+}
+function firstFriday(y,m0){
+  let d=new Date(y,m0,1);
+  while(d.getDay()!==5) d.setDate(d.getDate()+1);
+  return d.getDate();
+}
+
+// ═══════════════════════════════════════════
+// FOMC DATES — hardcoded 2024-2026, approximated after
+// ═══════════════════════════════════════════
+const FOMC_HARDCODED={
+  2024:[[1,31],[3,20],[5,1],[6,12],[7,31],[9,18],[11,7],[12,18]],
+  2025:[[1,29],[3,19],[5,7],[6,18],[7,30],[9,17],[10,29],[12,10]],
+  2026:[[1,28],[3,18],[5,6],[6,17],[7,29],[9,16],[10,28],[12,9]],
+};
+// Approximate FOMC pattern: typically 8 meetings per year on Tue-Wed,
+// roughly: late Jan, mid Mar, end Apr/early May, mid Jun,
+// late Jul, mid Sep, late Oct/early Nov, mid Dec
+const FOMC_APPROX_PATTERN=[
+  [1,27],[3,16],[4,28],[6,16],[7,28],[9,15],[10,27],[12,8]
+];
+
+function getFOMCDates(year){
+  if(FOMC_HARDCODED[year]) return {dates:FOMC_HARDCODED[year], approx:false};
+
+  // Apply approximate pattern - adjust to nearest Wednesday
+  const dates=FOMC_APPROX_PATTERN.map(([m,d])=>{
+    let target=new Date(year,m-1,d);
+    // FOMC announcements always on Wed (day 3)
+    while(target.getDay()!==3) target.setDate(target.getDate()+1);
+    return [m, target.getDate()];
+  });
+  return {dates, approx:true};
+}
+
+// ═══════════════════════════════════════════
+// CPI DATES — hardcoded 2024-2026, approximated after
+// CPI typically released 10-15 of each month (Tue/Wed/Thu)
+// ═══════════════════════════════════════════
+const CPI_HARDCODED={
+  2024:[[1,11],[2,13],[3,12],[4,10],[5,15],[6,12],[7,11],[8,14],[9,11],[10,10],[11,13],[12,11]],
+  2025:[[1,15],[2,12],[3,12],[4,10],[5,13],[6,11],[7,11],[8,12],[9,10],[10,14],[11,13],[12,10]],
+  2026:[[1,14],[2,11],[3,11],[4,9], [5,12],[6,10],[7,10],[8,12],[9,9], [10,13],[11,12],[12,9]],
+};
+
+function getCPIDates(year){
+  if(CPI_HARDCODED[year]) return {dates:CPI_HARDCODED[year], approx:false};
+  // Approximate: 11th of each month, adjusted to nearest Tue/Wed/Thu
+  const dates=[];
+  for(let m=1;m<=12;m++){
+    let target=new Date(year,m-1,11);
+    while(target.getDay()<2 || target.getDay()>4) {
+      target.setDate(target.getDate()+1);
+    }
+    dates.push([m, target.getDate()]);
+  }
+  return {dates, approx:true};
+}
+
+// ═══════════════════════════════════════════
+// BUILD ALL EVENTS
+// ═══════════════════════════════════════════
+function buildEvents(){
+  const ev={};
+  const add=(y,m1,d,data)=>{
+    const k=`${y}-${m1}-${d}`;
+    if(!ev[k]) ev[k]=[];
+    if(!ev[k].find(e=>e.type===data.type)) ev[k].push(data);
+  };
+
+  for(let y=YEAR_START;y<=YEAR_END;y++){
+    for(let m0=0;m0<12;m0++){
+      const m1=m0+1;
+
+      // Triple/Quad — 3rd Friday
+      const tf=thirdFriday(y,m0);
+      if(QUAD_MONTHS.has(m0)) add(y,m1,tf,{type:'quad',label:'Quadruple Witching'});
+      else                    add(y,m1,tf,{type:'triple',label:'Triple Witching'});
+
+      // NFP — first Friday
+      add(y,m1,firstFriday(y,m0),{type:'nfp',label:'NFP'});
+
+      // Initial Claims — every Thursday
+      let thu=new Date(y,m0,1);
+      while(thu.getDay()!==4) thu.setDate(thu.getDate()+1);
+      while(thu.getMonth()===m0){
+        add(y,m1,thu.getDate(),{type:'claims',label:'Initial Claims'});
+        thu.setDate(thu.getDate()+7);
+      }
+    }
+
+    // FOMC
+    const fomc=getFOMCDates(y);
+    fomc.dates.forEach(([m,d])=>add(y,m,d,{type:'fomc',label:'Рішення по ставці',approx:fomc.approx}));
+
+    // CPI
+    const cpi=getCPIDates(y);
+    cpi.dates.forEach(([m,d])=>add(y,m,d,{type:'cpi',label:'CPI',approx:cpi.approx}));
+  }
+  return ev;
+}
+const EVENTS=buildEvents();
+
+function primaryEvent(k){
+  const evs=EVENTS[k]||[];
+  return evs.slice().sort((a,b)=>PRIORITY.indexOf(a.type)-PRIORITY.indexOf(b.type))[0]||null;
+}
+
+function dateHasApprox(k){
+  const evs=EVENTS[k]||[];
+  return evs.some(e=>e.approx);
+}
+
+// ═══════════════════════════════════════════
+// QUIZ DATA
+// ═══════════════════════════════════════════
+const QUIZ={
+  fomc:{
+    q:'Яка подія відбувається сьогодні о 14:00 ET?',
+    correct:'fomc',
+    opts:[
+      {key:'fomc', label:'Рішення ФРС по обліковій ставці (FOMC)',
+       exp:'FOMC оголошує рішення по ставці 8 разів на рік. Після оголошення — прес-конференція голови ФРС. Це одна з найважливіших подій для фінансових ринків.'},
+      {key:'cpi',    label:'CPI — публікація даних по інфляції'},
+      {key:'nfp',    label:'NFP — звіт з ринку праці'},
+      {key:'claims', label:'Initial Claims — тижневі заявки на допомогу по безробіттю'},
+    ],
+    scenarios:[
+      {
+        desc:'ФРС підвищила ставку на 0.25% — вище очікувань ринку.',
+        note:'Hawkish сюрприз',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'down',reason:'Вищі ставки → дорожчий кредит → менші прибутки → акції падають'},
+          {icon:'💵',name:'Долар (USD)',correct:'up',reason:'Вища ставка → більший попит на USD → долар зміцнюється'},
+          {icon:'🏦',name:'Банківський сектор',correct:'up',reason:'Банки заробляють більше на різниці ставок по кредитах та депозитах'},
+          {icon:'🏠',name:'REITs / Нерухомість',correct:'down',reason:'Великі борги REITs стають дорожчими, плюс конкурують з облігаціями'},
+          {icon:'🪙',name:'Золото',correct:'down',reason:'Висока ставка = конкуренція від облігацій → золото менш привабливе'},
+        ]
+      },{
+        desc:'ФРС знизила ставку на 0.50% — більше ніж очікував ринок.',
+        note:'Dovish сюрприз',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'up',reason:'Нижчі ставки → дешевший кредит → вищі оцінки компаній → акції ростуть'},
+          {icon:'💵',name:'Долар (USD)',correct:'down',reason:'Нижча ставка → менший попит на USD → долар слабшає'},
+          {icon:'🌿',name:'Зелена енергетика',correct:'up',reason:'Clean energy має великі борги — нижча ставка сильно знижує витрати'},
+          {icon:'🏠',name:'REITs / Нерухомість',correct:'up',reason:'Нижча ставка = дешевше рефінансування + REITs привабливіші ніж облігації'},
+          {icon:'🪙',name:'Золото',correct:'up',reason:'Слабший USD + нижча реальна ставка → золото стає привабливішим'},
+        ]
+      }
+    ]
+  },
+
+  cpi:{
+    q:'Який макроекономічний показник публікується сьогодні о 08:30 ET?',
+    correct:'cpi',
+    opts:[
+      {key:'cpi',    label:'CPI — Індекс споживчих цін',
+       exp:'Consumer Price Index вимірює зміну цін на споживчий кошик. Ключовий показник для ФРС — безпосередньо впливає на рішення по ставці. Виходить 10–15 числа кожного місяця.'},
+      {key:'nfp',    label:'NFP — кількість нових робочих місць'},
+      {key:'fomc',   label:'Рішення ФРС по обліковій ставці'},
+      {key:'claims', label:'Initial Claims — тижневі заявки по безробіттю'},
+    ],
+    scenarios:[
+      {
+        desc:'CPI вийшов 4.2% — вище прогнозу 3.8%. Інфляція прискорилась.',
+        note:'Інфляція вища очікувань (погано для ринку)',
+        assets:[
+          {icon:'💻',name:'Tech (NASDAQ)',correct:'down',reason:'Висока інфляція → Fed не знизить ставку → tech під тиском через дисконтування'},
+          {icon:'💵',name:'Долар (USD)',correct:'up',reason:'Висока інфляція → ставки залишаться вище довше → USD зміцнюється'},
+          {icon:'⛽',name:'Нафта / Енергетика',correct:'up',reason:'Зростання цін на енергоносії — часто причина інфляції → пряме зростання для сектору'},
+          {icon:'🏠',name:'REITs',correct:'down',reason:'Ставки залишаються вище = дорожче рефінансування боргів REITs'},
+          {icon:'🪙',name:'Золото',correct:'neutral',reason:'Золото захищає від інфляції (+), але висока ставка конкурує з ним (−) → ефекти нейтралізуються'},
+        ]
+      },{
+        desc:'CPI впав до 2.1% — нижче прогнозу 2.6%. Інфляція під контролем.',
+        note:'Інфляція нижча очікувань (добре для ринку)',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'up',reason:'Низька інфляція → Fed може знизити ставку → акції дорожчають'},
+          {icon:'💻',name:'Tech (NASDAQ)',correct:'up',reason:'Tech найбільше виграє від зниження ставки — майбутні доходи коштують більше'},
+          {icon:'💵',name:'Долар (USD)',correct:'down',reason:'Низька інфляція → очікування зниження ставки → USD слабшає'},
+          {icon:'🏠',name:'REITs',correct:'up',reason:'Нижча ставка = дешевше рефінансування + REITs привабливіші ніж облігації'},
+          {icon:'🪙',name:'Золото',correct:'up',reason:'Слабший USD + очікування зниження ставки → золото росте'},
+        ]
+      }
+    ]
+  },
+
+  nfp:{
+    q:'Яка публікація виходить сьогодні о 08:30 ET?',
+    correct:'nfp',
+    opts:[
+      {key:'nfp',    label:'NFP — Non-Farm Payrolls, звіт з ринку праці',
+       exp:'Non-Farm Payrolls показує скільки нових робочих місць створено в США за попередній місяць. Виходить у першу п\'ятницю кожного місяця. Один із найважливіших показників для ФРС і валютного ринку.'},
+      {key:'claims', label:'Initial Claims — заявки по безробіттю'},
+      {key:'cpi',    label:'CPI — індекс споживчих цін'},
+      {key:'fomc',   label:'Рішення ФРС по обліковій ставці'},
+    ],
+    scenarios:[
+      {
+        desc:'NFP: +280K нових місць — значно вище прогнозу +185K. Безробіття: 3.7%.',
+        note:'Сильний ринок праці',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'down',reason:'Сильний NFP → Fed не поспішає знижати ставку → поганий сигнал для акцій'},
+          {icon:'💵',name:'Долар (USD)',correct:'up',reason:'Сильна економіка → ставки залишаються вище → USD зміцнюється'},
+          {icon:'🏦',name:'Банківський сектор',correct:'up',reason:'Сильна економіка = менше поганих кредитів + ставки залишаються вище = прибуток банків'},
+          {icon:'🛍',name:'Споживчий сектор',correct:'up',reason:'Більше зайнятих → більше доходів → більше витрат на споживання'},
+          {icon:'🪙',name:'Золото',correct:'down',reason:'Сильний NFP → ставки залишаються вище → золото менш привабливе'},
+        ]
+      },{
+        desc:'NFP: +72K — втричі нижче прогнозу +200K. Безробіття зросло до 4.2%.',
+        note:'Слабкий ринок праці',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'down',reason:'Слабкий NFP = страх рецесії → інвестори виходять з ризикових активів'},
+          {icon:'💵',name:'Долар (USD)',correct:'down',reason:'Слабка економіка → очікування зниження ставки → USD слабшає'},
+          {icon:'🪙',name:'Золото',correct:'up',reason:'Страх рецесії + очікування зниження ставки → потік у захисні активи'},
+          {icon:'🛍',name:'Дискреційний споживач',correct:'down',reason:'Менше зайнятих → менше доходів → менше витрат на не-обовʼязкові товари'},
+          {icon:'🛡',name:'Захисні акції (KO, JNJ)',correct:'neutral',reason:'Попит на товари першої необхідності стабільний незалежно від рецесії'},
+        ]
+      }
+    ]
+  },
+
+  claims:{
+    q:'Який показник ринку праці публікується сьогодні о 08:30 ET?',
+    correct:'claims',
+    opts:[
+      {key:'claims', label:'Initial Jobless Claims — первинні заявки по безробіттю',
+       exp:'Initial Claims показує скільки людей вперше звернулись за допомогою по безробіттю за минулий тиждень. Виходить кожного четверга. Дає швидкий сигнал про стан ринку праці — актуальніший ніж місячний NFP.'},
+      {key:'nfp',    label:'NFP — звіт з ринку праці'},
+      {key:'cpi',    label:'CPI — дані по інфляції'},
+      {key:'fomc',   label:'Засідання ФРС по ставці'},
+    ],
+    scenarios:[
+      {
+        desc:'Initial Claims: 268K — вище прогнозу 215K. Більше людей втрачає роботу.',
+        note:'Claims вищі очікувань = ринок праці слабшає',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'down',reason:'Більше заявок → ринок праці слабшає → страх уповільнення економіки'},
+          {icon:'💵',name:'Долар (USD)',correct:'down',reason:'Слабкий ринок праці → можливе зниження ставки → USD слабшає'},
+          {icon:'🪙',name:'Золото',correct:'up',reason:'Ознаки уповільнення → пошук захисних активів → золото росте'},
+          {icon:'🛍',name:'Роздрібний сектор',correct:'down',reason:'Більше безробітних → менше споживчих витрат → роздріб страждає'},
+        ]
+      },{
+        desc:'Initial Claims: 178K — нижче прогнозу 225K. Ринок праці залишається міцним.',
+        note:'Claims нижчі очікувань = ринок праці міцний',
+        assets:[
+          {icon:'📈',name:'S&P 500',correct:'neutral',reason:'Тижневі Claims — вторинний індикатор. Ринок реагує помірно якщо немає різкого відхилення'},
+          {icon:'💵',name:'Долар (USD)',correct:'up',reason:'Міцний ринок праці → Fed утримує ставку вище → USD зміцнюється'},
+          {icon:'🏦',name:'Банківський сектор',correct:'up',reason:'Міцна зайнятість = менше дефолтів по кредитах → банки виграють'},
+          {icon:'🛍',name:'Споживчий сектор',correct:'up',reason:'Більше зайнятих → стабільний дохід → стабільне споживання'},
+        ]
+      }
+    ]
+  },
+
+  triple:{
+    q:'Чому ця п\'ятниця особлива для трейдерів?',
+    correct:'triple',
+    opts:[
+      {key:'triple', label:'Triple Witching — одночасне закінчення терміну 3 типів деривативів',
+       exp:'Triple Witching — третя п\'ятниця місяця, крім березня, червня, вересня і грудня. Одночасно закінчуються: опціони на акції, ф\'ючерси на акції, опціони на індекси. Обсяги торгів різко зростають.'},
+      {key:'quad',   label:'Quadruple Witching — 4 типи деривативів одночасно'},
+      {key:'fomc',   label:'Рішення ФРС — оголошення по ставці'},
+      {key:'nfp',    label:'NFP — місячний звіт з ринку праці'},
+    ],
+    scenarios:[
+      {
+        desc:'Сьогодні Triple Witching. Закінчується термін дії деривативів на мільярди доларів.',
+        note:'Як змінюються ринкові показники?',
+        assets:[
+          {icon:'📊',name:'Обсяг торгів (Volume)',correct:'up',reason:'Масове закриття та перекладання позицій по деривативах → різке зростання обсягів'},
+          {icon:'⚡',name:'Волатильність (VIX)',correct:'up',reason:'Великі рухи від реролінгу позицій → ціни коливаються сильніше'},
+          {icon:'📈',name:'S&P 500 (напрям тренду)',correct:'neutral',reason:'Triple Witching не визначає напрям — впливає лише на обсяг і волатильність'},
+          {icon:'💹',name:'Bid-Ask спред',correct:'up',reason:'Вища волатильність → маркет-мейкери розширюють спред для захисту від ризику'},
+        ]
+      }
+    ]
+  },
+
+  quad:{
+    q:'Чому ця п\'ятниця особлива? Який тип Witching відбувається сьогодні?',
+    correct:'quad',
+    opts:[
+      {key:'quad',   label:'Quadruple Witching — 4 типи деривативів закінчуються одночасно',
+       exp:'Quadruple Witching — третя п\'ятниця березня, червня, вересня і грудня. До 3 типів Triple Witching додаються ф\'ючерси на фондові індекси. Найбільший за обсягом день у кварталі.'},
+      {key:'triple', label:'Triple Witching — закінчення терміну 3 типів деривативів'},
+      {key:'fomc',   label:'Рішення ФРС по обліковій ставці'},
+      {key:'nfp',    label:'NFP — звіт з ринку праці'},
+    ],
+    scenarios:[
+      {
+        desc:'Сьогодні Quadruple Witching. Одночасно закінчується термін 4 типів деривативів.',
+        note:'Найбільший за обсягами день кварталу',
+        assets:[
+          {icon:'📊',name:'Обсяг торгів (Volume)',correct:'up',reason:'Найбільший за обсягами день кварталу — реролінг позицій по всіх 4 типах деривативів'},
+          {icon:'⚡',name:'Волатильність (VIX)',correct:'up',reason:'Максимальна волатильність у порівнянні зі звичайним Triple Witching'},
+          {icon:'📈',name:'S&P 500 (напрям тренду)',correct:'neutral',reason:'Quad Witching не визначає напрям ринку — тільки збільшує активність та волатильність'},
+          {icon:'💹',name:'Bid-Ask спред',correct:'up',reason:'Вища волатильність → маркет-мейкери розширюють спреди по всіх інструментах'},
+        ]
+      }
+    ]
+  },
+};
+
+const TIME_QUIZ={
+  fomc:{correct:'14:00 ET', exp:'Рішення FOMC оголошується о 14:00 ET. Після — прес-конференція голови ФРС о 14:30 ET. Найбільша волатильність ринку — між 14:00 та 15:00.', opts:['08:30 ET','09:30 ET','14:00 ET','16:00 ET']},
+  cpi:{correct:'08:30 ET', exp:'CPI публікується о 08:30 ET — до відкриття ринку (09:30 ET). Це дає час трейдерам оцінити дані та скоригувати позиції до старту торгів.', opts:['08:30 ET','09:30 ET','12:00 ET','14:00 ET']},
+  nfp:{correct:'08:30 ET', exp:'NFP виходить о 08:30 ET — у першу п\'ятницю місяця, до відкриття ринку (09:30 ET). Волатильність на відкритті часто визначається саме цим звітом.', opts:['08:30 ET','09:30 ET','12:00 ET','14:00 ET']},
+  claims:{correct:'08:30 ET', exp:'Initial Claims публікується кожного четверга о 08:30 ET. Разом з ним часто виходять Continuing Claims. До відкриття ринку — трейдери бачать дані до старту торгів.', opts:['08:30 ET','09:30 ET','12:00 ET','16:00 ET']},
+  triple:{correct:'16:00 ET', exp:'Triple Witching закінчується о 16:00 ET — на закритті ринку. Найбільша активність — остання година торгів (15:00–16:00 ET). Відбувається кожну третю п\'ятницю місяця, крім березня, червня, вересня і грудня.', opts:['09:30 ET','12:00 ET','15:00 ET','16:00 ET']},
+  quad:{correct:'16:00 ET', exp:'Quadruple Witching також закінчується о 16:00 ET. Відбувається у третю п\'ятницю березня, червня, вересня і грудня. Остання година (15:00–16:00) — найбільш хаотична та волатильна частина дня.', opts:['09:30 ET','12:00 ET','15:00 ET','16:00 ET']},
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const now=new Date();
+let viewYear=now.getFullYear();
+let viewMonth=now.getMonth();
+let selKey=null;
+let answered={};
+let score={correct:0,total:0};
+let curScenario=null;
+
+// ═══════════════════════════════════════════
+// YEAR SELECT
+// ═══════════════════════════════════════════
+function fillYearSelect(){
+  const sel=document.getElementById('yearSelect');
+  let html='';
+  for(let y=YEAR_START;y<=YEAR_END;y++){
+    html+=`<option value="${y}" ${y===viewYear?'selected':''}>${y}</option>`;
+  }
+  sel.innerHTML=html;
+}
+function jumpYear(){
+  viewYear=parseInt(document.getElementById('yearSelect').value);
+  if(viewYear>YEAR_END) viewYear=YEAR_END;
+  if(viewYear<YEAR_START) viewYear=YEAR_START;
+  selKey=null;closeQ();renderCalendar();
+}
+
+// ═══════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════
+function changeMonth(dir){
+  viewMonth+=dir;
+  if(viewMonth>11){viewMonth=0;viewYear++;}
+  if(viewMonth<0){viewMonth=11;viewYear--;}
+  if(viewYear>YEAR_END){viewYear=YEAR_END;viewMonth=11;}
+  if(viewYear<YEAR_START){viewYear=YEAR_START;viewMonth=0;}
+  selKey=null;closeQ();renderCalendar();
+  document.getElementById('yearSelect').value=viewYear;
+}
+function goToday(){
+  viewYear=now.getFullYear();
+  viewMonth=now.getMonth();
+  selKey=null;closeQ();renderCalendar();
+  document.getElementById('yearSelect').value=viewYear;
+}
+
+function monthHasApprox(){
+  const days=new Date(viewYear,viewMonth+1,0).getDate();
+  for(let d=1;d<=days;d++){
+    const k=`${viewYear}-${viewMonth+1}-${d}`;
+    if(dateHasApprox(k)) return true;
+  }
+  return false;
+}
+
+function renderCalendar(){
+  document.getElementById('calTitle').innerHTML=
+    `${MONTHS_UK[viewMonth]} <span class="y-frame">${viewYear}</span>`;
+
+  // approx banner
+  document.getElementById('approxBanner').className=
+    'approx-banner'+(monthHasApprox()?' show':'');
+
+  const grid=document.getElementById('calGrid');
+  let html=DAYS_UK.map((d,i)=>`<div class="cal-wd${i>=5?' we':''}">${d}</div>`).join('');
+
+  const firstDow=new Date(viewYear,viewMonth,1).getDay();
+  const offset=(firstDow+6)%7;
+  for(let i=0;i<offset;i++) html+=`<div class="day-cell empty"></div>`;
+
+  const days=new Date(viewYear,viewMonth+1,0).getDate();
+  for(let d=1;d<=days;d++){
+    const dow=new Date(viewYear,viewMonth,d).getDay();
+    const we=dow===0||dow===6;
+    const isTod=d===now.getDate()&&viewMonth===now.getMonth()&&viewYear===now.getFullYear();
+    const k=`${viewYear}-${viewMonth+1}-${d}`;
+    const evs=EVENTS[k]||[];
+    const hasEv=evs.length>0;
+
+    let cls='day-cell';
+    if(we) cls+=' we-day';
+    if(hasEv) cls+=' has-ev';
+    if(k===selKey) cls+=' sel';
+
+    const numEl=isTod?`<div class="today-badge">${d}</div>`:`<div class="day-num">${d}</div>`;
+
+    const dots=hasEv?`<div class="dot-row">${evs.map(e=>{
+      const approxCls=e.approx?' approx':'';
+      const style=e.approx?`border-color:${DOT_COLOR[e.type]||'#555'}`:`background:${DOT_COLOR[e.type]||'#555'}`;
+      return `<div class="ev-dot${approxCls}" style="${style}"></div>`;
+    }).join('')}</div>`:'';
+
+    const ans=answered[k];
+    let badge='';
+    if(ans!==undefined){
+      const allDone=ans.step1!==undefined&&ans.step2!==undefined&&ans.step3!==undefined;
+      const anyDone=ans.step1!==undefined||ans.step2!==undefined||ans.step3!==undefined;
+      const cls2=allDone?'ok':anyDone?'partial':'';
+      badge=`<div class="ans-badge ${cls2}">${allDone?'✓':anyDone?'◑':'✗'}</div>`;
+    }
+
+    const click=hasEv?`onclick="openQ('${k}')"`:'';
+    html+=`<div class="${cls}" ${click}>${badge}${numEl}${dots}</div>`;
+  }
+  grid.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// QUIZ FLOW
+// ═══════════════════════════════════════════
+function openQ(k){
+  selKey=k;
+  renderCalendar();
+  const prim=primaryEvent(k);
+  if(!prim) return;
+  const qd=QUIZ[prim.type];
+  if(!qd) return;
+
+  document.getElementById('rpIdle').style.display='none';
+  const card=document.getElementById('qCard');
+  card.className='q-card show';
+
+  const parts=k.split('-');
+  const dStr=`${parts[2]} ${MONTHS_UK[+parts[1]-1]} ${parts[0]}`;
+  const otherEvs=(EVENTS[k]||[]).filter(e=>e.type!==prim.type).map(e=>
+    `<span style="color:var(--muted);font-size:10px;font-family:var(--mono);font-weight:500">+ ${e.label}</span>`
+  ).join(' ');
+
+  if(!curScenario||curScenario.key!==k){
+    const sc=qd.scenarios[Math.floor(Math.random()*qd.scenarios.length)];
+    curScenario={key:k, sc, assetAnswers:{}};
+  }
+  const isStep1Done=answered[k]?.step1!==undefined;
+  renderStep1(k, qd, dStr, otherEvs, isStep1Done, prim);
+}
+
+function renderStep1(k, qd, dStr, otherEvs, isAnswered, prim){
+  const card=document.getElementById('qCard');
+  const wasOk=answered[k]?.step1;
+  const correctOpt=qd.opts.find(o=>o.key===qd.correct);
+
+  const opts=[...qd.opts].sort(()=>Math.random()-.5);
+  const optsHtml=opts.map(o=>{
+    let cls='opt';
+    if(isAnswered){
+      if(o.key===qd.correct) cls+=' correct';
+      else cls+=' reveal';
+    }
+    return `<button class="${cls}" ${isAnswered?'disabled':''} data-key="${o.key}"
+      onclick="answerStep1('${k}','${o.key}','${qd.correct}')">${o.label}</button>`;
+  }).join('');
+
+  const fbCls=isAnswered?(wasOk?'ok':'fail'):'';
+  const fbHead=isAnswered?(wasOk?'✓ Вірно':'✗ Неправильно'):'';
+  const fbExp=isAnswered?correctOpt.exp:'';
+
+  card.innerHTML=`
+    <div class="q-step">Крок 1 з 3 · Визначення події</div>
+    <div class="q-date-lbl">${dStr}${otherEvs?' &nbsp;'+otherEvs:''}</div>
+    <div class="q-head">${qd.q}</div>
+    <div class="q-instruct">Оберіть правильну відповідь</div>
+    <div class="opts">${optsHtml}</div>
+    <div class="feedback ${fbCls} ${isAnswered?'show':''}" id="fb1">
+      <div class="fb-h">${fbHead}</div>
+      <div class="fb-exp">${fbExp}</div>
+    </div>
+    <button class="btn-act next-step ${isAnswered?'show':''}" onclick="renderStep2('${k}')">Крок 2: Час публікації →</button>
+    <button class="btn-act back show" onclick="closeQ()">← Назад до календаря</button>
+  `;
+}
+
+function answerStep1(k, chosen, correct){
+  const isCorrect=chosen===correct;
+  if(!answered[k]) answered[k]={};
+  if(answered[k].step1===undefined){
+    answered[k].step1=isCorrect;
+    answered[k].step1_chosen=chosen;
+    answered[k].step1_correct=correct;
+    answered[k].eventType=primaryEvent(k).type;
+    answered[k].dateKey=k;
+    if(isCorrect) score.correct++;
+    score.total++;
+    updateScore();
+  }
+
+  document.querySelectorAll('#qCard .opt').forEach(btn=>{
+    btn.disabled=true;
+    const bk=btn.getAttribute('data-key');
+    if(bk===correct) btn.className='opt correct';
+    else btn.className='opt reveal';
+    if(bk===chosen&&!isCorrect) btn.className='opt wrong';
+  });
+
+  const correctOpt=QUIZ[primaryEvent(k).type].opts.find(o=>o.key===correct);
+  const fb=document.getElementById('fb1');
+  fb.className='feedback '+(isCorrect?'ok':'fail')+' show';
+  fb.innerHTML=`<div class="fb-h">${isCorrect?'✓ Вірно':'✗ Неправильно'}</div><div class="fb-exp">${correctOpt.exp}</div>`;
+  document.querySelector('#qCard .next-step').className='btn-act next-step show';
+}
+
+function renderStep2(k){
+  const prim=primaryEvent(k);
+  const tq=TIME_QUIZ[prim.type];
+  if(!tq){renderStep3(k);return;}
+
+  const card=document.getElementById('qCard');
+  const parts=k.split('-');
+  const dStr=`${parts[2]} ${MONTHS_UK[+parts[1]-1]} ${parts[0]}`;
+  const isDone=answered[k]?.step2!==undefined;
+  const wasOk=answered[k]?.step2;
+
+  const opts=[...tq.opts].sort(()=>Math.random()-.5);
+  const optsHtml=opts.map(o=>{
+    let cls='opt';
+    if(isDone){
+      if(o===tq.correct) cls+=' correct';
+      else cls+=' reveal';
+    }
+    return `<button class="${cls}" ${isDone?'disabled':''} data-time="${o}"
+      onclick="answerStep2('${k}','${o.replace(':','__')}')">${o}</button>`;
+  }).join('');
+
+  const fbCls=isDone?(wasOk?'ok':'fail'):'';
+  const fbHead=isDone?(wasOk?'✓ Вірно':'✗ Неправильно'):'';
+  const fbExp=isDone?tq.exp:'';
+
+  card.innerHTML=`
+    <div class="q-step">Крок 2 з 3 · Час публікації</div>
+    <div class="q-date-lbl">${dStr}</div>
+    <div class="q-head">О котрій годині (ET) публікується ця подія?</div>
+    <div class="q-instruct">Оберіть правильний час</div>
+    <div class="opts">${optsHtml}</div>
+    <div class="feedback ${fbCls} ${isDone?'show':''}" id="fb2">
+      <div class="fb-h">${fbHead}</div>
+      <div class="fb-exp">${fbExp}</div>
+    </div>
+    <button class="btn-act next-step ${isDone?'show':''}" onclick="renderStep3('${k}')">Крок 3: Вплив на ринок →</button>
+    <button class="btn-act back show" onclick="closeQ()">← Назад до календаря</button>
+  `;
+}
+
+function answerStep2(k, chosenRaw){
+  const chosen=chosenRaw.replace('__',':');
+  const prim=primaryEvent(k);
+  const tq=TIME_QUIZ[prim.type];
+  const isCorrect=chosen===tq.correct;
+
+  if(!answered[k]) answered[k]={};
+  if(answered[k].step2===undefined){
+    answered[k].step2=isCorrect;
+    answered[k].step2_chosen=chosen;
+    answered[k].step2_correct=tq.correct;
+    if(isCorrect) score.correct++;
+    score.total++;
+    updateScore();
+  }
+
+  document.querySelectorAll('#qCard .opt').forEach(btn=>{
+    btn.disabled=true;
+    const bv=btn.getAttribute('data-time');
+    if(bv===tq.correct) btn.className='opt correct';
+    else if(bv===chosen&&!isCorrect) btn.className='opt wrong';
+    else btn.className='opt reveal';
+  });
+
+  const fb=document.getElementById('fb2');
+  fb.className='feedback '+(isCorrect?'ok':'fail')+' show';
+  fb.innerHTML=`<div class="fb-h">${isCorrect?'✓ Вірно':'✗ Неправильно — '+tq.correct}</div><div class="fb-exp">${tq.exp}</div>`;
+  document.querySelector('#qCard .next-step').className='btn-act next-step show';
+}
+
+function renderStep3(k){
+  const prim=primaryEvent(k);
+  const qd=QUIZ[prim.type];
+  const {sc,assetAnswers}=curScenario;
+  const isDone=answered[k]?.step3!==undefined;
+
+  const card=document.getElementById('qCard');
+  const parts=k.split('-');
+  const dStr=`${parts[2]} ${MONTHS_UK[+parts[1]-1]} ${parts[0]}`;
+
+  const assetsHtml=sc.assets.map((a,i)=>{
+    const userAns=assetAnswers[i];
+    const done=isDone||userAns!==undefined;
+    const dirs=[{v:'up',lbl:'▲ Вгору'},{v:'down',lbl:'▼ Вниз'},{v:'neutral',lbl:'— Нейтр.'}];
+    const btnHtml=dirs.map(dir=>{
+      let cls='imp-btn';
+      if(done){
+        if(dir.v===a.correct) cls+=` ok-${dir.v}`;
+        else if(dir.v===userAns&&userAns!==a.correct) cls+=' opt wrong';
+        else cls+=' reveal';
+      } else {
+        if(userAns===dir.v) cls+=` sel-${dir.v}`;
+      }
+      return `<button class="${cls}" ${done?'disabled':''} onclick="answerAsset('${k}',${i},'${dir.v}')">${dir.lbl}</button>`;
+    }).join('');
+    const reasonShow=done?'show':'';
+    return `
+      <div class="impact-row">
+        <div class="impact-top">
+          <div class="imp-icon">${a.icon}</div>
+          <div class="imp-name">${a.name}</div>
+          <div class="imp-btns">${btnHtml}</div>
+        </div>
+        <div class="imp-reason ${reasonShow}" id="reason-${i}">${a.reason}</div>
+      </div>`;
+  }).join('');
+
+  card.innerHTML=`
+    <div class="q-step">Крок 3 з 3 · Вплив на ринок</div>
+    <div class="q-date-lbl">${dStr}</div>
+    <div class="scenario-box">
+      <strong>${sc.note}</strong>${sc.desc}
+    </div>
+    <div class="q-instruct">Як відреагує кожен актив?</div>
+    <div class="impact-rows">${assetsHtml}</div>
+    <div class="feedback" id="fb3"></div>
+    <button class="btn-act back show" onclick="closeQ()">← Назад до календаря</button>
+  `;
+}
+
+function answerAsset(k, idx, chosen){
+  const {sc,assetAnswers}=curScenario;
+  const a=sc.assets[idx];
+  if(assetAnswers[idx]!==undefined) return;
+
+  assetAnswers[idx]=chosen;
+  const isOk=chosen===a.correct;
+
+  if(!answered[k]) answered[k]={};
+  if(isOk) score.correct++;
+  score.total++;
+  updateScore();
+
+  const row=document.querySelectorAll('.impact-row')[idx];
+  row.querySelectorAll('.imp-btn').forEach(btn=>{
+    const dirs=['up','down','neutral'];
+    const bv=dirs.find(d=>btn.textContent.includes(d==='up'?'▲':d==='down'?'▼':'—'));
+    if(!bv) return;
+    btn.disabled=true;
+    if(bv===a.correct) btn.className=`imp-btn ok-${bv}`;
+    else if(bv===chosen&&!isOk) btn.className='imp-btn opt wrong';
+    else btn.className='imp-btn reveal';
+  });
+  const reasonEl=document.getElementById(`reason-${idx}`);
+  if(reasonEl) reasonEl.className='imp-reason show';
+
+  const allDone=sc.assets.every((_,i)=>assetAnswers[i]!==undefined);
+  if(allDone){
+    if(answered[k].step3===undefined){
+      const allOk=sc.assets.every((a,i)=>assetAnswers[i]===a.correct);
+      answered[k].step3=allOk;
+      const assetDetails=sc.assets.map((a,i)=>({
+        name:a.name,
+        chosen:assetAnswers[i],
+        correct:a.correct,
+        ok:assetAnswers[i]===a.correct
+      }));
+      answered[k].step3_assets=assetDetails;
+      answered[k].step3_scenario=sc.note;
+      answered[k].step3_score=assetDetails.filter(x=>x.ok).length+'/'+assetDetails.length;
+    }
+    const fb=document.getElementById('fb3');
+    const okCount=sc.assets.filter((a,i)=>assetAnswers[i]===a.correct).length;
+    const totalCount=sc.assets.length;
+    const ok=okCount===totalCount;
+    fb.className='feedback '+(ok?'ok':'fail')+' show';
+    // Use separate span to avoid text-transform:uppercase turning "з" into "З" (looks like "3")
+    fb.innerHTML = ok
+      ? '<div class="fb-h">✓ ВІДМІННО — ВСІ АКТИВИ ВІРНО</div>'
+      : `<div style="font-weight:700;font-family:var(--mono);font-size:11px;letter-spacing:1px;margin-bottom:6px">◑ ${okCount} <span style="font-family:sans-serif;font-style:normal">з</span> ${totalCount} АКТИВІВ ВІРНО</div>`;
+    renderCalendar();
+    checkMonthDone();
+  }
+}
+
+function checkMonthDone(){
+  const days=new Date(viewYear,viewMonth+1,0).getDate();
+  let total=0,done=0;
+  for(let d=1;d<=days;d++){
+    const k=`${viewYear}-${viewMonth+1}-${d}`;
+    if(EVENTS[k]&&EVENTS[k].length){
+      total++;
+      if(answered[k]?.step1!==undefined&&answered[k]?.step2!==undefined&&answered[k]?.step3!==undefined) done++;
+    }
+  }
+  if(total>0&&done===total) setTimeout(showResult,700);
+}
+
+function closeQ(){
+  selKey=null;
+  document.getElementById('rpIdle').style.display='flex';
+  document.getElementById('qCard').className='q-card';
+  renderCalendar();
+}
+
+function updateScore(){
+  document.getElementById('sCorrect').textContent=score.correct;
+  document.getElementById('sTotal').textContent=score.total;
+  document.getElementById('sPct').textContent=score.total?Math.round(score.correct/score.total*100)+'%':'—';
+}
+
+function showResult(){
+  const wrong=score.total-score.correct;
+  const pct=score.total?Math.round(score.correct/score.total*100):0;
+  const cls=pct>=80?'great':pct>=60?'ok':'bad';
+  const grade=pct>=80?'ВІДМІННО':pct>=60?'ДОБРЕ':'ЩЕ РАЗ';
+  document.getElementById('rGrade').textContent=grade;
+  document.getElementById('rGrade').className='r-grade '+cls;
+  document.getElementById('rSub').textContent=`${MONTHS_UK[viewMonth]} ${viewYear} · ${pct}% правильних відповідей`;
+  document.getElementById('rTotal2').textContent=score.total;
+  document.getElementById('rCorr').textContent=score.correct;
+  document.getElementById('rWrong').textContent=wrong;
+  document.getElementById('resultOverlay').className='result-overlay show';
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').className='result-overlay';
+}
+
+function exportReport(){
+  if(score.total === 0){
+    alert('Спочатку дайте хоча б одну відповідь');
+    return;
+  }
+
+  // Aggregate stats
+  const eventNames={
+    fomc:'FOMC (рішення по ставці)',
+    cpi:'CPI (інфляція)',
+    nfp:'NFP (звіт по зайнятості)',
+    claims:'Initial Claims',
+    quad:'Quadruple Witching',
+    triple:'Triple Witching'
+  };
+
+  // Group by event type
+  const byType={};
+  Object.values(answered).forEach(a=>{
+    if(!a.eventType) return;
+    if(!byType[a.eventType]){
+      byType[a.eventType]={correct:0,total:0,events:[]};
+    }
+    const stats=byType[a.eventType];
+    // Count steps answered
+    [a.step1,a.step2,a.step3].forEach(v=>{
+      if(v!==undefined){
+        stats.total++;
+        if(v) stats.correct++;
+      }
+    });
+    stats.events.push(a);
+  });
+
+  // Weakest topics (sorted by accuracy ascending)
+  const topicStats=Object.entries(byType).map(([t,d])=>({
+    type:t,
+    name:eventNames[t]||t,
+    correct:d.correct,
+    total:d.total,
+    pct:d.total?Math.round(d.correct/d.total*100):0,
+    events:d.events
+  })).sort((a,b)=>a.pct-b.pct);
+
+  // Mistakes detail
+  const mistakes=[];
+  Object.values(answered).forEach(a=>{
+    if(!a.eventType) return;
+    const dateStr=a.dateKey?formatDate(a.dateKey):'';
+    if(a.step1===false){
+      mistakes.push({date:dateStr, event:eventNames[a.eventType], step:'Визначення події', chosen:'Не вгадав тип події', expected:eventNames[a.step1_correct]||a.step1_correct});
+    }
+    if(a.step2===false){
+      mistakes.push({date:dateStr, event:eventNames[a.eventType], step:'Час публікації', chosen:a.step2_chosen, expected:a.step2_correct});
+    }
+    if(a.step3===false && a.step3_assets){
+      a.step3_assets.filter(x=>!x.ok).forEach(asset=>{
+        mistakes.push({date:dateStr, event:eventNames[a.eventType], step:'Реакція '+asset.name, chosen:dirLabel(asset.chosen), expected:dirLabel(asset.correct)});
+      });
+    }
+  });
+
+  const pct=Math.round(score.correct/score.total*100);
+  const grade=pct>=80?'Відмінно':pct>=60?'Добре':'Потребує повторення';
+
+  // Generate HTML for print/PDF
+  const reportHTML=buildReportHTML({
+    pct, grade, totalAnswers:score.total, correct:score.correct,
+    wrong:score.total-score.correct, topicStats, mistakes
+  });
+
+  const w=window.open('','_blank');
+  w.document.write(reportHTML);
+  w.document.close();
+}
+
+function dirLabel(v){
+  return v==='up'?'▲ Вгору':v==='down'?'▼ Вниз':v==='neutral'?'— Нейтрально':v;
+}
+
+function formatDate(k){
+  const [y,m,d]=k.split('-');
+  return `${d.padStart(2,'0')}.${m.padStart(2,'0')}.${y}`;
+}
+
+function buildReportHTML(data){
+  const {pct,grade,totalAnswers,correct,wrong,topicStats,mistakes}=data;
+  const gradeColor=pct>=80?'#16a34a':pct>=60?'#d97706':'#dc2626';
+
+  const topicRows=topicStats.map(t=>`
+    <tr>
+      <td>${t.name}</td>
+      <td style="text-align:center">${t.correct}/${t.total}</td>
+      <td style="text-align:center;color:${t.pct>=80?'#16a34a':t.pct>=60?'#d97706':'#dc2626'};font-weight:700">${t.pct}%</td>
+    </tr>`).join('');
+
+  const mistakeRows=mistakes.length===0
+    ? '<tr><td colspan="4" style="text-align:center;color:#16a34a;font-weight:600;padding:20px">Помилок немає — відмінна робота!</td></tr>'
+    : mistakes.map(m=>`
+        <tr>
+          <td style="white-space:nowrap">${m.date}</td>
+          <td>${m.event}</td>
+          <td>${m.step}</td>
+          <td><span style="color:#dc2626">${m.chosen}</span> → <span style="color:#16a34a">${m.expected}</span></td>
+        </tr>`).join('');
+
+  // Recommendations
+  const weakTopics=topicStats.filter(t=>t.pct<70);
+  let recs='';
+  if(weakTopics.length===0){
+    recs='<p style="color:#16a34a;font-weight:600">Чудовий рівень розуміння всіх тем — продовжуй в тому ж дусі.</p>';
+  } else {
+    recs='<p style="margin-bottom:10px">Рекомендується підтягнути такі теми:</p><ul style="padding-left:20px">';
+    weakTopics.forEach(t=>{
+      recs+=`<li style="margin-bottom:6px"><b>${t.name}</b> — точність ${t.pct}%. Перечитай матеріал курсу і пройди тренування знову.</li>`;
+    });
+    recs+='</ul>';
+  }
+
+  const dateNow=new Date().toLocaleString('uk-UA');
+
+  return `<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>LEXX — Звіт по економічному календарю</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica',Arial,sans-serif;color:#1e293b;padding:30px 40px;font-size:13px;line-height:1.6;max-width:900px;margin:0 auto;background:#fff}
+.r-hdr{border-bottom:2px solid #1e293b;padding-bottom:14px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.r-logo{font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.r-logo em{color:#2563eb;font-style:normal}
+.r-title{font-size:22px;font-weight:700;margin-top:4px}
+.r-meta{text-align:right;font-size:11px;color:#64748b}
+.r-meta b{color:#1e293b;font-size:13px}
+.r-grade-box{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+.r-grade-card{flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px}
+.r-grade-card .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:600;margin-bottom:4px}
+.r-grade-card .val{font-size:22px;font-weight:700}
+.r-grade-card .val.grade{color:${gradeColor}}
+.section{margin-bottom:22px;page-break-inside:avoid}
+.section-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#2563eb;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f1f5f9;text-align:left;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:1px solid #cbd5e1}
+td{padding:8px 10px;border-bottom:1px solid #e2e8f0}
+tr:hover td{background:#f8fafc}
+.recs{background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:14px 18px;font-size:13px}
+.print-btn{position:fixed;top:16px;right:16px;background:#2563eb;color:#fff;border:none;padding:10px 18px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+@media print{
+  body{padding:18px 24px}
+  .print-btn{display:none}
+}
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">⎙ Друкувати / Зберегти PDF</button>
+
+<div class="r-hdr">
+  <div>
+    <div class="r-logo">LEXX <em>International</em></div>
+    <div class="r-title">Звіт по тренуванню<br>«Економічний календар»</div>
+  </div>
+  <div class="r-meta">
+    <div>Згенеровано:</div>
+    <div><b>${dateNow}</b></div>
+  </div>
+</div>
+
+<div class="r-grade-box">
+  <div class="r-grade-card">
+    <div class="lbl">Загальна точність</div>
+    <div class="val grade">${pct}%</div>
+  </div>
+  <div class="r-grade-card">
+    <div class="lbl">Оцінка</div>
+    <div class="val grade">${grade}</div>
+  </div>
+  <div class="r-grade-card">
+    <div class="lbl">Правильних</div>
+    <div class="val" style="color:#16a34a">${correct} / ${totalAnswers}</div>
+  </div>
+  <div class="r-grade-card">
+    <div class="lbl">Помилок</div>
+    <div class="val" style="color:#dc2626">${wrong}</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-h">Точність по типах подій</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Тип події</th>
+        <th style="text-align:center;width:140px">Правильних</th>
+        <th style="text-align:center;width:100px">Точність</th>
+      </tr>
+    </thead>
+    <tbody>${topicRows}</tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-h">Деталізація помилок</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:90px">Дата</th>
+        <th style="width:170px">Подія</th>
+        <th style="width:170px">Етап</th>
+        <th>Відповідь → Правильна</th>
+      </tr>
+    </thead>
+    <tbody>${mistakeRows}</tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-h">Рекомендації</div>
+  <div class="recs">${recs}</div>
+</div>
+
+<div style="border-top:1px solid #e2e8f0;padding-top:14px;margin-top:30px;text-align:center;font-size:11px;color:#94a3b8">
+  LEXX International — Економічний календар · Симулятор для трейдерів
+</div>
+</body>
+</html>`;
+}
+
+function resetAll(){
+  if(!confirm('Скинути всі результати?')) return;
+  answered={};score={correct:0,total:0};selKey=null;curScenario=null;
+  updateScore();closeQ();
+  document.getElementById('resultOverlay').className='result-overlay';
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+fillYearSelect();
+if(viewYear<YEAR_START) viewYear=YEAR_START;
+if(viewYear>YEAR_END) viewYear=YEAR_END;
+document.getElementById('yearSelect').value=viewYear;
+renderCalendar();
+</script>
+</body>
+</html>
