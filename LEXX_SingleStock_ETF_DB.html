@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEXX — Single-Stock ETF Database</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8fafc;--sf:#fff;--s2:#f1f5f9;--bd:#e2e8f0;--bd2:#cbd5e1;
+  --ink:#1e293b;--txt:#334155;--mut:#64748b;--sub:#94a3b8;
+  --blue:#2563eb;--blt:#eff6ff;--bbd:#93c5fd;
+  --green:#16a34a;--glt:#f0fdf4;--gbd:#86efac;
+  --red:#dc2626;--rlt:#fef2f2;--rbd:#fca5a5;
+  --gold:#d97706;--olt:#fffbeb;--obd:#fcd34d;
+  --purple:#7c3aed;--plt:#f5f3ff;--pbd:#ddd6fe;
+  --sans:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
+
+.hdr{background:var(--ink);padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--blue)}
+.h-logo{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff}
+.h-logo span{color:#60a5fa}
+.h-badge{background:var(--blue);color:#fff;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:3px;margin-left:4px}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.h-stat{font-size:11px;color:#94a3b8;font-family:var(--mono)}
+.h-stat span{color:#60a5fa;font-weight:600}
+.hbtn{background:transparent;color:#60a5fa;border:1px solid #374151;font-size:11px;font-weight:600;padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .15s}
+.hbtn:hover{border-color:#60a5fa;color:#fff}
+
+.search-section{background:var(--sf);border-bottom:1px solid var(--bd);padding:18px 24px}
+.search-wrap{max-width:900px;margin:0 auto}
+.search-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.search-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-input{font-family:var(--mono);font-size:22px;font-weight:600;border:2px solid var(--bd2);border-radius:8px;padding:11px 16px;outline:none;width:190px;text-transform:uppercase;letter-spacing:2px;background:var(--sf);color:var(--ink);transition:border-color .15s}
+.search-input:focus{border-color:var(--blue);background:var(--blt)}
+.search-input::placeholder{color:var(--sub);font-size:15px;letter-spacing:1px;text-transform:none}
+.filter-row{display:flex;gap:7px;flex-wrap:wrap}
+.fbtn{background:var(--sf);border:1.5px solid var(--bd);color:var(--mut);font-size:11px;font-weight:700;padding:6px 13px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fbtn:hover{border-color:var(--bd2);color:var(--ink)}
+.fbtn.active{color:#fff;border-color:transparent}
+.fa.active{background:var(--ink)}
+.fb.active{background:var(--green)}
+.fc.active{background:var(--red)}
+.fd.active{background:var(--purple)}
+.result-info{font-size:12px;color:var(--mut);margin-top:10px;min-height:18px}
+
+.main{max-width:1200px;margin:0 auto;padding:22px 24px 60px}
+
+.stock-section{margin-bottom:28px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.stock-header{display:flex;align-items:center;gap:14px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--bd)}
+.stock-ticker{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--blue);min-width:72px}
+.stock-name{font-size:14px;font-weight:600}
+.stock-sector{font-size:11px;color:var(--mut);margin-top:2px}
+.stock-count{margin-left:auto;font-size:11px;color:var(--sub);font-family:var(--mono)}
+
+.etf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.etf-card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;overflow:hidden;transition:box-shadow .15s}
+.etf-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.ec-head{padding:11px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+.ec-ticker{font-family:var(--mono);font-size:15px;font-weight:700;min-width:55px}
+.tc-bull{color:var(--green)}.tc-bear{color:var(--red)}.tc-cc{color:var(--purple)}
+.ec-name{font-size:11.5px;color:var(--txt);line-height:1.4;flex:1}
+.ec-type{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:3px;flex-shrink:0}
+.t-bull{background:var(--glt);color:var(--green);border:1px solid var(--gbd)}
+.t-bear{background:var(--rlt);color:var(--red);border:1px solid var(--rbd)}
+.t-cc{background:var(--plt);color:var(--purple);border:1px solid var(--pbd)}
+.ec-body{padding:11px 14px}
+.ec-desc{font-size:11.5px;color:var(--mut);line-height:1.6;margin-bottom:10px}
+.ec-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ec-stat{background:var(--s2);border-radius:5px;padding:6px 8px;text-align:center}
+.ec-stat-val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
+.sv-bull{color:var(--green)}.sv-bear{color:var(--red)}.sv-cc{color:var(--purple)}
+.ec-stat-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--sub);margin-top:1px}
+.ec-provider{font-size:10px;color:var(--sub);margin-top:7px}
+
+.empty{text-align:center;padding:60px 20px;color:var(--mut)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.empty-txt{font-size:15px;margin-bottom:5px}
+.empty-sub{font-size:12px;color:var(--sub)}
+
+.footer{background:var(--sf);border-top:1px solid var(--bd);padding:12px 24px;font-size:11px;color:var(--sub);text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="h-logo">LEXX <span>International</span><span class="h-badge">Single-Stock ETF DB</span></div>
+  </div>
+  <div class="h-right">
+    <div class="h-stat">Акцій: <span id="statS">0</span> · ETF: <span id="statE">0</span></div>
+    <button class="hbtn" onclick="exportJSON()">↓ Експорт JSON</button>
+    <label class="hbtn" style="cursor:pointer">↑ Імпорт JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+  </div>
+</div>
+
+<div class="search-section">
+  <div class="search-wrap">
+    <div class="search-label">Пошук за тікером акції</div>
+    <div class="search-row">
+      <input class="search-input" id="si" placeholder="NVDA, TSLA…" maxlength="6"
+             oninput="onSearch()" onkeydown="if(event.key==='Escape'){this.value='';onSearch()}">
+      <div class="filter-row">
+        <button class="fbtn fa active" onclick="setF('all',this)">Всі типи</button>
+        <button class="fbtn fb" onclick="setF('bull',this)">▲ Leveraged Bull</button>
+        <button class="fbtn fc" onclick="setF('bear',this)">▼ Inverse Bear</button>
+        <button class="fbtn fd" onclick="setF('cc',this)">◎ Covered Call</button>
+      </div>
+    </div>
+    <div class="result-info" id="ri"></div>
+  </div>
+</div>
+
+<div class="main" id="mainArea"></div>
+
+<div class="footer">
+  Single-stock ETF у США існують приблизно для 55–60 унікальних акцій — це максимум поточного ринку (GraniteShares, Direxion, YieldMax, T-Rex, Rex Shares, Defiance, Tradr). Обсяги торгів орієнтовні (середні денні). Не є інвестиційною рекомендацією. · Оновлено: червень 2025
+</div>
+
+<script>
+let DB = {
+ stocks:[
+  {ticker:'NVDA', name:'NVIDIA Corporation',            sector:'Semiconductors / AI'},
+  {ticker:'TSLA', name:'Tesla, Inc.',                   sector:'Electric Vehicles'},
+  {ticker:'AAPL', name:'Apple Inc.',                    sector:'Technology / Consumer'},
+  {ticker:'AMZN', name:'Amazon.com, Inc.',              sector:'E-Commerce / Cloud'},
+  {ticker:'MSFT', name:'Microsoft Corporation',         sector:'Technology / Cloud'},
+  {ticker:'GOOGL',name:'Alphabet Inc.',                 sector:'Search / Advertising'},
+  {ticker:'META', name:'Meta Platforms, Inc.',          sector:'Social Media'},
+  {ticker:'COIN', name:'Coinbase Global, Inc.',         sector:'Crypto Exchange'},
+  {ticker:'AMD',  name:'Advanced Micro Devices, Inc.',  sector:'Semiconductors'},
+  {ticker:'MSTR', name:'MicroStrategy Inc.',            sector:'Bitcoin Treasury'},
+  {ticker:'PLTR', name:'Palantir Technologies Inc.',    sector:'AI / Data Analytics'},
+  {ticker:'HOOD', name:'Robinhood Markets, Inc.',       sector:'Fintech / Brokerage'},
+  {ticker:'SMCI', name:'Super Micro Computer, Inc.',    sector:'AI Servers'},
+  {ticker:'NFLX', name:'Netflix, Inc.',                 sector:'Streaming'},
+  {ticker:'JPM',  name:'JPMorgan Chase & Co.',          sector:'Banking'},
+  {ticker:'SNOW', name:'Snowflake Inc.',                sector:'Cloud Data'},
+  {ticker:'UBER', name:'Uber Technologies, Inc.',       sector:'Rideshare / Mobility'},
+  {ticker:'MARA', name:'MARA Holdings, Inc.',           sector:'Bitcoin Mining'},
+  {ticker:'MU',   name:'Micron Technology, Inc.',       sector:'Memory Semiconductors'},
+  {ticker:'AVGO', name:'Broadcom Inc.',                 sector:'Semiconductors'},
+  {ticker:'BABA', name:'Alibaba Group Holding Ltd.',    sector:'Chinese E-Commerce'},
+  {ticker:'DIS',  name:'The Walt Disney Company',       sector:'Media / Entertainment'},
+  {ticker:'PYPL', name:'PayPal Holdings, Inc.',         sector:'Fintech / Payments'},
+  {ticker:'SQ',   name:'Block, Inc.',                   sector:'Fintech / Payments'},
+  {ticker:'CVNA', name:'Carvana Co.',                   sector:'Automotive Retail'},
+  {ticker:'XOM',  name:'Exxon Mobil Corporation',       sector:'Energy / Oil & Gas'},
+  {ticker:'PANW', name:'Palo Alto Networks, Inc.',      sector:'Cybersecurity'},
+  {ticker:'SHOP', name:'Shopify Inc.',                  sector:'E-Commerce Platform'},
+  {ticker:'BA',   name:'The Boeing Company',            sector:'Aerospace / Defense'},
+  {ticker:'IONQ', name:'IonQ, Inc.',                    sector:'Quantum Computing'},
+  {ticker:'TSM',  name:'Taiwan Semiconductor Mfg.',    sector:'Semiconductors / Foundry'},
+  {ticker:'ADBE', name:'Adobe Inc.',                    sector:'Software / Creative'},
+  {ticker:'ASML', name:'ASML Holding N.V.',             sector:'Semiconductor Equipment'},
+  {ticker:'CSCO', name:'Cisco Systems, Inc.',           sector:'Networking / Tech'},
+  {ticker:'MRVL', name:'Marvell Technology, Inc.',      sector:'Semiconductors'},
+  {ticker:'BRKB', name:'Berkshire Hathaway Inc. (B)',   sector:'Conglomerate / Finance'},
+  {ticker:'GME',  name:'GameStop Corp.',                sector:'Gaming / Retail'},
+  {ticker:'ABNB', name:'Airbnb, Inc.',                  sector:'Travel / Hospitality'},
+  {ticker:'RBLX', name:'Roblox Corporation',            sector:'Gaming / Metaverse'},
+  {ticker:'DKNG', name:'DraftKings Inc.',               sector:'Sports Betting'},
+  {ticker:'RDDT', name:'Reddit, Inc.',                  sector:'Social Media'},
+  {ticker:'HIMS', name:'Hims & Hers Health, Inc.',      sector:'Telehealth / GLP-1'},
+  {ticker:'CRCL', name:'Circle Internet Group',         sector:'Crypto / Stablecoin'},
+  {ticker:'MRNA', name:'Moderna, Inc.',                 sector:'Biotechnology / mRNA'},
+  {ticker:'AI',   name:'C3.ai, Inc.',                   sector:'Enterprise AI'},
+  {ticker:'F',    name:'Ford Motor Company',            sector:'Automotive'},
+  {ticker:'AAL',  name:'American Airlines Group',       sector:'Airlines'},
+  {ticker:'RIVN', name:'Rivian Automotive, Inc.',       sector:'Electric Vehicles'},
+  {ticker:'LCID', name:'Lucid Group, Inc.',             sector:'Electric Vehicles'},
+  {ticker:'GM',   name:'General Motors Company',        sector:'Automotive'},
+  {ticker:'SOFI', name:'SoFi Technologies, Inc.',       sector:'Fintech / Banking'},
+  {ticker:'NIO',  name:'NIO Inc.',                      sector:'Chinese EVs'},
+  {ticker:'INTC', name:'Intel Corporation',             sector:'Semiconductors'},
+  {ticker:'ARM',  name:'Arm Holdings plc',              sector:'Semiconductor IP'},
+  {ticker:'ORCL', name:'Oracle Corporation',            sector:'Cloud / Database'},
+ ],
+ etfs:[
+  // ── NVDA ─────────────────────────────────────────
+  {u:'NVDA',ticker:'NVDL', name:'GraniteShares 2x Long NVDA Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:9200000, desc:'Найбільший leveraged ETF на NVIDIA. Подвоює денний рух через свопи. Призначений виключно для денної торгівлі.'},
+  {u:'NVDA',ticker:'NVDX', name:'T-Rex 2X Long NVIDIA Daily Target ETF',   p:'T-Rex Shares',  type:'bull',lev:'2x',   vol:4800000, desc:'Конкурент NVDL від T-Rex Shares. Аналогічна 2x bull стратегія на NVIDIA з дещо нижчою expense ratio.'},
+  {u:'NVDA',ticker:'NVD',  name:'GraniteShares 2x Short NVDA Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:1100000, desc:'Подвоює зворотній денний рух NVDA. Інструмент для шорту або хеджування довгих позицій у NVIDIA.'},
+  {u:'NVDA',ticker:'NVDS', name:'T-Rex 2X Short NVIDIA Daily Target ETF',  p:'T-Rex Shares',  type:'bear',lev:'-2x',  vol:900000,  desc:'Аналог NVD від T-Rex. Ставка на падіння NVDA з плечем 2x. Активний під час AI-sector корекцій.'},
+  {u:'NVDA',ticker:'NVDY', name:'YieldMax NVDA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:2100000, desc:'Продає call spreads на NVDA для генерації щомісячного доходу. Обмежує upside але дає виплати ~30-50% річних.'},
+  {u:'NVDA',ticker:'DIPS', name:'YieldMax Short NVDA Option Income ETF',   p:'YieldMax',      type:'cc',  lev:'-1x',  vol:280000,  desc:'Зворотня covered call стратегія на NVDA. Генерує дохід коли NVDA падає або консолідується.'},
+
+  // ── TSLA ─────────────────────────────────────────
+  {u:'TSLA',ticker:'TSLL', name:'Direxion Daily TSLA Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:98000000,desc:'Найбільш торгований single-stock ETF в США ($6+ млрд AUM). Подвоює денний рух Tesla. Улюблений серед роздрібних трейдерів.'},
+  {u:'TSLA',ticker:'TSL',  name:'GraniteShares 1.25x Long TSLA Daily ETF', p:'GraniteShares', type:'bull',lev:'1.25x',vol:3200000, desc:'Помірніше плече 1.25x на Tesla від GraniteShares. Менший ризик волатильності decay при утриманні кілька днів.'},
+  {u:'TSLA',ticker:'TSLR', name:'GraniteShares 2x Long TSLA Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:1800000, desc:'Конкурент TSLL від GraniteShares. Подвоює денний рух Tesla. Менший обсяг ніж Direxion але аналогічна стратегія.'},
+  {u:'TSLA',ticker:'TSLS', name:'Direxion Daily TSLA Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:3200000, desc:'Зворотній ETF на Tesla 1:1. Зростає коли TSLA падає. Менш агресивний ніж 2x bear продукти.'},
+  {u:'TSLA',ticker:'TSDD', name:'Direxion Daily TSLA Bear 2X Shares',      p:'Direxion',      type:'bear',lev:'-2x',  vol:2100000, desc:'Подвоює зворотній денний рух Tesla. Агресивний інструмент для ведмежих ставок або хеджу великих позицій у TSLA.'},
+  {u:'TSLA',ticker:'TSLQ', name:'Tradr 2X Short TSLA Daily ETF',           p:'Tradr',         type:'bear',lev:'-2x',  vol:5100000, desc:'Конкурент TSDD від Tradr. Подвоює зворотній рух TSLA. Популярний серед шорт-сейлерів Tesla.'},
+  {u:'TSLA',ticker:'TSLY', name:'YieldMax TSLA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:5400000, desc:'Перший і найвідоміший YieldMax фонд. Висока волатильність TSLA дає великі premiums — yield часто 50-80% річних.'},
+  {u:'TSLA',ticker:'CRSH', name:'YieldMax Short TSLA Option Income ETF',   p:'YieldMax',      type:'cc',  lev:'-1x',  vol:310000,  desc:'Ведмежа covered call стратегія на Tesla. Генерує дохід коли TSLA падає або залишається нижче strike price.'},
+
+  // ── AAPL ─────────────────────────────────────────
+  {u:'AAPL',ticker:'AAPB', name:'GraniteShares 2x Long AAPL Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:1800000, desc:'Подвоює денний рух Apple. Менш волатильний ніж NVDL або TSLL завдяки стабільнішій базовій акції.'},
+  {u:'AAPL',ticker:'AAPU', name:'Direxion Daily AAPL Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:980000,  desc:'Подвоює денний рух Apple від Direxion. Активний навколо iPhone launch, earnings та AI features оголошень.'},
+  {u:'AAPL',ticker:'AAPD', name:'Direxion Daily AAPL Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:380000,  desc:'Зворотній ETF на Apple 1:1. Консервативний хедж або ведмежа позиція на найбільшу компанію у світі.'},
+  {u:'AAPL',ticker:'APII', name:'GraniteShares 2x Short AAPL Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:200000,  desc:'Подвоює зворотній рух Apple. Ставка на падіння AAPL з подвійним плечем від GraniteShares.'},
+  {u:'AAPL',ticker:'APLY', name:'YieldMax AAPL Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:1200000, desc:'Covered call на Apple. Більш стабільний дохід ніж TSLY через нижчу волатильність AAPL. Yield ~15-25% річних.'},
+
+  // ── AMZN ─────────────────────────────────────────
+  {u:'AMZN',ticker:'AMZU', name:'Direxion Daily AMZN Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:2300000, desc:'Подвоює денний рух Amazon від Direxion. Популярний навколо Prime Day, AWS quarterly results та AI оголошень.'},
+  {u:'AMZN',ticker:'AMZZ', name:'GraniteShares 2x Long AMZN Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:800000,  desc:'GraniteShares аналог 2x Long на Amazon. Менший обсяг ніж AMZU але аналогічна стратегія подвоєння денного руху.'},
+  {u:'AMZN',ticker:'AMZD', name:'Direxion Daily AMZN Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:480000,  desc:'Зворотній ETF на Amazon 1:1. Хедж або ведмежа ставка на e-commerce або AWS показники.'},
+  {u:'AMZN',ticker:'AMZY', name:'YieldMax AMZN Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:820000,  desc:'Covered call на Amazon. Помірна волатильність дає стабільний дохід ~20-30% річних.'},
+
+  // ── MSFT ─────────────────────────────────────────
+  {u:'MSFT',ticker:'MSFL', name:'GraniteShares 2x Long MSFT Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:1100000, desc:'Подвоює денний рух Microsoft. Активний навколо Azure AI, Copilot продуктів та quarterly earnings.'},
+  {u:'MSFT',ticker:'MSFU', name:'Direxion Daily MSFT Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:900000,  desc:'Direxion варіант 2x bull на Microsoft. Аналогічна MSFL стратегія від іншого провайдера.'},
+  {u:'MSFT',ticker:'MSFD', name:'Direxion Daily MSFT Bear 2X Shares',      p:'Direxion',      type:'bear',lev:'-2x',  vol:230000,  desc:'Зворотній ETF на Microsoft з плечем 2x. Низький обсяг — MSFT рідко у сильному downtrend.'},
+  {u:'MSFT',ticker:'MSFO', name:'YieldMax MSFT Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:680000,  desc:'Covered call стратегія на Microsoft. Стабільний дохід завдяки помірній волатильності MSFT. Yield ~15-20% річних.'},
+
+  // ── GOOGL ────────────────────────────────────────
+  {u:'GOOGL',ticker:'GGLL',name:'Direxion Daily GOOGL Bull 2X Shares',     p:'Direxion',      type:'bull',lev:'2x',   vol:1400000, desc:'Подвоює денний рух Alphabet від Direxion. Активний навколо Search/YouTube результатів та Gemini AI оголошень.'},
+  {u:'GOOGL',ticker:'GOOL',name:'GraniteShares 2x Long GOOGL Daily ETF',   p:'GraniteShares', type:'bull',lev:'2x',   vol:600000,  desc:'GraniteShares аналог 2x bull на Alphabet. Конкурує з GGLL за обсягами. Менша ліквідність.'},
+  {u:'GOOGL',ticker:'GGLS',name:'Direxion Daily GOOGL Bear 2X Shares',     p:'Direxion',      type:'bear',lev:'-2x',  vol:210000,  desc:'Подвоює зворотній рух Google. Для ставок на слабкі рекламні доходи або антимонопольні ризики.'},
+  {u:'GOOGL',ticker:'GOOY',name:'YieldMax GOOGL Option Income Strategy ETF',p:'YieldMax',     type:'cc',  lev:'1x',   vol:520000,  desc:'Covered call на Alphabet. Стабільний дохід ~18-25% річних. Один з популярних YieldMax фондів.'},
+
+  // ── META ─────────────────────────────────────────
+  {u:'META',ticker:'FBL',  name:'GraniteShares 2x Long META Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:1200000, desc:'Подвоює денний рух Meta Platforms. Активний навколо Reels/AI/Reality Labs оголошень та рекламних звітів.'},
+  {u:'META',ticker:'METU', name:'Rex Shares 2X Long META ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:980000,  desc:'Rex Shares 2x bull стратегія на Meta. Конкурує з FBL. Активний в періоди AI та metaverse новин.'},
+  {u:'META',ticker:'FBSS', name:'GraniteShares 2x Short META Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:180000,  desc:'Подвоює зворотній рух Meta. Ставка на рекламні проблеми або регуляторні ризики для Meta Platforms.'},
+  {u:'META',ticker:'FBY',  name:'YieldMax META Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:420000,  desc:'Covered call стратегія на Meta Platforms. Дохід від продажу опціонів на одну з найприбутковіших tech компаній.'},
+
+  // ── COIN ─────────────────────────────────────────
+  {u:'COIN',ticker:'CONL', name:'GraniteShares 2x Long COIN Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:4900000, desc:'Подвоює денний рух Coinbase. Висока волатильність COIN (корелює з BTC) дає сильні рухи. Популярний під час crypto rallies.'},
+  {u:'COIN',ticker:'CONI', name:'GraniteShares 2x Short COIN Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:680000,  desc:'Подвоює зворотній рух Coinbase. Інструмент для ставок на crypto downturns та регуляторні ризики.'},
+  {u:'COIN',ticker:'CONY', name:'YieldMax COIN Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:3100000, desc:'Covered call на Coinbase. Екстремальна волатильність COIN дає найвищі yields серед YieldMax — 60-100%+ річних.'},
+
+  // ── AMD ──────────────────────────────────────────
+  {u:'AMD', ticker:'AMDL', name:'GraniteShares 2x Long AMD Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:2100000, desc:'Подвоює денний рух AMD. Активний навколо AI chip launches, datacenter wins та конкуренції з NVIDIA.'},
+  {u:'AMD', ticker:'AMDS', name:'GraniteShares 2x Short AMD Daily ETF',    p:'GraniteShares', type:'bear',lev:'-2x',  vol:380000,  desc:'Зворотній ETF на AMD з плечем 2x. Для ставок коли NVIDIA виграє ринкову частку або AMD miss на earnings.'},
+  {u:'AMD', ticker:'AMDY', name:'YieldMax AMD Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:420000,  desc:'Covered call на AMD. Генерує дохід від волатильності сектору. Yield ~25-40% річних.'},
+
+  // ── MSTR ─────────────────────────────────────────
+  {u:'MSTR',ticker:'MSTU', name:'T-Rex 2X Long MSTR Daily Target ETF',     p:'T-Rex Shares',  type:'bull',lev:'2x',   vol:22000000,desc:'Найбільш торгований leveraged ETF на MicroStrategy. MSTR — фактично leveraged Bitcoin. MSTU подвоює вже leveraged позицію.'},
+  {u:'MSTR',ticker:'MSTX', name:'Defiance 2x Long MSTR ETF',               p:'Defiance ETFs', type:'bull',lev:'2x',   vol:9800000, desc:'Конкурент MSTU від Defiance. Аналогічна 2x bull стратегія на MicroStrategy. Популярний серед crypto-bull трейдерів.'},
+  {u:'MSTR',ticker:'MSTZ', name:'T-Rex 2X Short MSTR Daily Target ETF',    p:'T-Rex Shares',  type:'bear',lev:'-2x',  vol:3400000, desc:'Подвоює зворотній рух MicroStrategy. Ефективний хедж проти Bitcoin downturns для тих хто торгує MSTR.'},
+  {u:'MSTR',ticker:'MSTY', name:'YieldMax MSTR Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:11000000,desc:'Один з найбільших YieldMax фондів ($1.9+ млрд AUM). Екстремальна волатильність MSTR дає yield 100-200%+ річних. Супер-ризиковий.'},
+
+  // ── PLTR ─────────────────────────────────────────
+  {u:'PLTR',ticker:'PTIR', name:'GraniteShares 2x Long PLTR Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:1800000, desc:'Подвоює денний рух Palantir від GraniteShares. Активний навколо AI/defense контрактів та quarterly results.'},
+  {u:'PLTR',ticker:'PLTW', name:'Rex Shares 2X Long PLTR ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:1600000, desc:'Rex Shares 2x bull на Palantir. Конкурує з PTIR. Обидва активні в моменти S&P 500 inclusion та нових AI deals.'},
+  {u:'PLTR',ticker:'PLTS', name:'Rex Shares 2X Short PLTR ETF',            p:'Rex Shares',    type:'bear',lev:'-2x',  vol:290000,  desc:'Зворотній ETF на Palantir з плечем 2x. Менш популярний — PLTR має сильний бичачий sentiment через AI хвилю.'},
+  {u:'PLTR',ticker:'PLTY', name:'YieldMax PLTR Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:1900000, desc:'Covered call на Palantir. Висока волатильність дає yield ~50-80% річних. Популярний серед income investors.'},
+
+  // ── HOOD ─────────────────────────────────────────
+  {u:'HOOD',ticker:'HODU', name:'Rex Shares 2X Long HOOD ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:620000,  desc:'Подвоює денний рух Robinhood. Активний під час crypto/meme stock rallies та нових продуктових оголошень.'},
+  {u:'HOOD',ticker:'HOOY', name:'YieldMax HOOD Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:340000,  desc:'Covered call на Robinhood. Волатильність HOOD дає yield ~40-60% річних для covered call стратегій.'},
+
+  // ── SMCI ─────────────────────────────────────────
+  {u:'SMCI',ticker:'SMCU', name:'Rex Shares 2X Long SMCI ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:890000,  desc:'Подвоює денний рух SuperMicro. Вкрай волатильний — SMCI відомий великими gaps навколо AI server demand та accounting issues.'},
+  {u:'SMCI',ticker:'SMCY', name:'YieldMax SMCI Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:680000,  desc:'Covered call на SuperMicro. Екстремальна волатильність SMCI дає yield ~80-120% річних.'},
+
+  // ── NFLX ─────────────────────────────────────────
+  {u:'NFLX',ticker:'NFXL', name:'GraniteShares 2x Long NFLX Daily ETF',   p:'GraniteShares', type:'bull',lev:'2x',   vol:680000,  desc:'Подвоює денний рух Netflix. Активний навколо subscriber growth звітів та content оголошень.'},
+  {u:'NFLX',ticker:'NFLY', name:'YieldMax NFLX Option Income Strategy ETF',p:'YieldMax',     type:'cc',  lev:'1x',   vol:420000,  desc:'Covered call на Netflix. Помірна волатильність. Yield ~20-35% річних.'},
+
+  // ── JPM ──────────────────────────────────────────
+  {u:'JPM', ticker:'JPL',  name:'GraniteShares 2x Long JPM Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:480000,  desc:'Подвоює денний рух JPMorgan Chase. Активний навколо Federal Reserve рішень та bank earnings сезону.'},
+  {u:'JPM', ticker:'JPMU', name:'Direxion Daily JPM Bull 2X Shares',       p:'Direxion',      type:'bull',lev:'2x',   vol:400000,  desc:'Direxion 2x bull варіант на JPMorgan. Конкурує з JPL. Аналогічна стратегія подвоєння денного руху банку.'},
+  {u:'JPM', ticker:'JMS',  name:'GraniteShares 2x Short JPM Daily ETF',    p:'GraniteShares', type:'bear',lev:'-2x',  vol:120000,  desc:'Зворотній ETF на JPMorgan з плечем 2x. Низький обсяг — JPM традиційно стабільний навіть у кризи.'},
+  {u:'JPM', ticker:'JPO',  name:'YieldMax JPM Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:280000,  desc:'Covered call на JPMorgan. Найнижчий yield серед YieldMax через низьку волатильність. ~10-15% річних.'},
+
+  // ── SNOW ─────────────────────────────────────────
+  {u:'SNOW',ticker:'SNWL', name:'GraniteShares 2x Long SNOW Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:320000,  desc:'Подвоює денний рух Snowflake. Активний навколо product announcements та конкуренції з Databricks.'},
+  {u:'SNOW',ticker:'SNOY', name:'YieldMax SNOW Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:190000,  desc:'Covered call на Snowflake. Yield ~25-40% річних від волатильності cloud data sector.'},
+
+  // ── UBER ─────────────────────────────────────────
+  {u:'UBER',ticker:'UBRL', name:'GraniteShares 2x Long UBER Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:240000,  desc:'Подвоює денний рух Uber. Активний навколо autonomous driving оголошень та profitability milestones.'},
+
+  // ── MARA ─────────────────────────────────────────
+  {u:'MARA',ticker:'MARU', name:'Rex Shares 2X Long MARA ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:1200000, desc:'Подвоює денний рух MARA Holdings (Bitcoin miner). Корелює з BTC ціною. Один з найволатильніших ETF.'},
+  {u:'MARA',ticker:'MARO', name:'YieldMax MARA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:280000,  desc:'Covered call на Bitcoin miner MARA. Yield ~80-120% річних. Корелює з крипто циклами.'},
+
+  // ── MU ───────────────────────────────────────────
+  {u:'MU',  ticker:'MULL', name:'GraniteShares 2x Long MU Daily ETF',      p:'GraniteShares', type:'bull',lev:'2x',   vol:390000,  desc:'Подвоює денний рух Micron. Активний навколо DRAM/NAND cycle та AI memory demand даних.'},
+
+  // ── AVGO ─────────────────────────────────────────
+  {u:'AVGO',ticker:'AVL',  name:'Direxion Daily AVGO Bull 2X ETF',         p:'Direxion',      type:'bull',lev:'2x',   vol:680000,  desc:'Подвоює денний рух Broadcom. Активний навколо AI custom chip deals та infrastructure announcements.'},
+  {u:'AVGO',ticker:'AVS',  name:'Direxion Daily AVGO Bear 1X ETF',         p:'Direxion',      type:'bear',lev:'-1x',  vol:90000,   desc:'Зворотній ETF на Broadcom 1:1. Хедж або ведмежа позиція на AI semiconductor компанію.'},
+  {u:'AVGO',ticker:'CHPY', name:'YieldMax AVGO Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:720000,  desc:'Covered call на Broadcom. Стабільний дохід завдяки передбачуваному бізнесу AVGO. Yield ~25-40% річних.'},
+
+  // ── BABA ─────────────────────────────────────────
+  {u:'BABA',ticker:'BABX', name:'GraniteShares 2x Long BABA Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:580000,  desc:'Подвоює денний рух Alibaba. Активний навколо китайських регуляторних змін та macroeconomic shifts в КНР.'},
+  {u:'BABA',ticker:'BABO', name:'YieldMax BABA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:310000,  desc:'Covered call на Alibaba. Висока волатильність через геополітику дає yield ~35-55% річних.'},
+
+  // ── DIS ──────────────────────────────────────────
+  {u:'DIS', ticker:'DISL', name:'GraniteShares 2x Long DIS Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:280000,  desc:'Подвоює денний рух Walt Disney. Активний навколо streaming subscriber metrics та theme park revenue.'},
+  {u:'DIS', ticker:'DISO', name:'YieldMax DIS Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:210000,  desc:'Covered call на Disney. Помірна волатильність. Дохід від streaming та entertainment результатів. ~15-25% річних.'},
+
+  // ── PYPL ─────────────────────────────────────────
+  {u:'PYPL',ticker:'PYPU', name:'Direxion Daily PYPL Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:280000,  desc:'Подвоює денний рух PayPal. Активний навколо partnerships, fee changes та fintech конкуренції.'},
+  {u:'PYPL',ticker:'PYPY', name:'YieldMax PYPL Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:180000,  desc:'Covered call на PayPal. Помірна волатильність. Yield ~20-30% річних.'},
+
+  // ── SQ ───────────────────────────────────────────
+  {u:'SQ',  ticker:'SQLU', name:'Rex Shares 2X Long SQ ETF',               p:'Rex Shares',    type:'bull',lev:'2x',   vol:310000,  desc:'Подвоює денний рух Block Inc. (Square). Активний навколо Cash App metrics та BTC результатів.'},
+  {u:'SQ',  ticker:'SLTY', name:'YieldMax SQ Option Income Strategy ETF',  p:'YieldMax',      type:'cc',  lev:'1x',   vol:140000,  desc:'Covered call на Block Inc. Yield ~30-45% річних від fintech/crypto волатильності.'},
+
+  // ── CVNA ─────────────────────────────────────────
+  {u:'CVNA',ticker:'CVNU', name:'Rex Shares 2X Long CVNA ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:420000,  desc:'Подвоює денний рух Carvana. Один з найволатильніших базових активів — CVNA відома драматичними рухами на earnings.'},
+  {u:'CVNA',ticker:'CVNY', name:'YieldMax CVNA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:290000,  desc:'Covered call на Carvana. Висока волатильність дає yield ~70-100% річних. Значний capital erosion risk.'},
+
+  // ── XOM ──────────────────────────────────────────
+  {u:'XOM', ticker:'XML',  name:'GraniteShares 2x Long XOM Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:180000,  desc:'Подвоює денний рух Exxon Mobil. Активний при нафтових price spikes та geopolitical supply disruptions.'},
+  {u:'XOM', ticker:'XOMY', name:'YieldMax XOM Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:160000,  desc:'Covered call на Exxon Mobil. Стабільний нафтовий гігант. Найнижча волатильність. Yield ~12-18% річних.'},
+
+  // ── PANW ─────────────────────────────────────────
+  {u:'PANW',ticker:'PANU', name:'Rex Shares 2X Long PANW ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:240000,  desc:'Подвоює денний рух Palo Alto Networks. Активний навколо cybersecurity threats та platformization results.'},
+
+  // ── SHOP ─────────────────────────────────────────
+  {u:'SHOP',ticker:'SHPU', name:'Rex Shares 2X Long SHOP ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:210000,  desc:'Подвоює денний рух Shopify. Активний навколо GMV звітів та e-commerce growth даних.'},
+
+  // ── BA ───────────────────────────────────────────
+  {u:'BA',  ticker:'BACU', name:'Direxion Daily BA Bull 2X Shares',        p:'Direxion',      type:'bull',lev:'2x',   vol:190000,  desc:'Подвоює денний рух Boeing. Активний навколо safety incidents, FAA approvals та defense contract news.'},
+
+  // ── IONQ ─────────────────────────────────────────
+  {u:'IONQ',ticker:'IONQ2',name:'Rex Shares 2X Long IONQ ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:180000,  desc:'Подвоює денний рух IonQ (quantum computing). Нішевий але популярний серед tech-speculative трейдерів.'},
+
+  // ── TSM ──────────────────────────────────────────
+  {u:'TSM', ticker:'TSMX', name:'Direxion Daily TSM Bull 2X ETF',          p:'Direxion',      type:'bull',lev:'2x',   vol:520000,  desc:'Подвоює денний рух Taiwan Semiconductor. Активний навколо AI chip demand, geopolitical Taiwan risk та CapEx announcements.'},
+  {u:'TSM', ticker:'TSMZ', name:'Direxion Daily TSM Bear 1X ETF',          p:'Direxion',      type:'bear',lev:'-1x',  vol:180000,  desc:'Зворотній ETF на TSMC 1:1. Хедж або ведмежа ставка при China-Taiwan геополітичних ризиках.'},
+  {u:'TSM', ticker:'TSMY', name:'YieldMax TSM Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:120000,  desc:'Covered call на TSMC. Yield від геополітично-чутливої напівпровідникової компанії ~20-30% річних.'},
+
+  // ── ADBE ─────────────────────────────────────────
+  {u:'ADBE',ticker:'ADBU', name:'Direxion Daily ADBE Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:210000,  desc:'Подвоює денний рух Adobe. Активний навколо Firefly AI tools та Creative Cloud subscription growth.'},
+  {u:'ADBE',ticker:'ADBD', name:'Direxion Daily ADBE Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:80000,   desc:'Зворотній ETF на Adobe 1:1. Для ставок на конкуренцію з безкоштовними AI image tools.'},
+
+  // ── ASML ─────────────────────────────────────────
+  {u:'ASML',ticker:'ASMU', name:'Direxion Daily ASML Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:180000,  desc:'Подвоює денний рух ASML (EUV monopoly). Активний навколо chip cycle peaks та export control новин.'},
+  {u:'ASML',ticker:'ASMD', name:'Direxion Daily ASML Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:60000,   desc:'Зворотній ETF на ASML. Хедж для тих хто вважає semiconductor cycle на піку.'},
+
+  // ── CSCO ─────────────────────────────────────────
+  {u:'CSCO',ticker:'CSCU', name:'Direxion Daily CSCO Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:150000,  desc:'Подвоює денний рух Cisco. Активний навколо AI networking infrastructure та quarterly results.'},
+  {u:'CSCO',ticker:'CSCD', name:'Direxion Daily CSCO Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:50000,   desc:'Зворотній ETF на Cisco 1:1. Низький обсяг — Cisco вважається defensive tech з помірною волатильністю.'},
+
+  // ── MRVL ─────────────────────────────────────────
+  {u:'MRVL',ticker:'MRVU', name:'Direxion Daily MRVL Bull 2X Shares',      p:'Direxion',      type:'bull',lev:'2x',   vol:320000,  desc:'Подвоює денний рух Marvell Technology. Активний навколо custom AI chip wins від hyperscalers (Amazon, Google).'},
+  {u:'MRVL',ticker:'MRVD', name:'Direxion Daily MRVL Bear 1X Shares',      p:'Direxion',      type:'bear',lev:'-1x',  vol:80000,   desc:'Зворотній ETF на Marvell 1:1. Для ставок на уповільнення custom chip замовлень від великих клієнтів.'},
+
+  // ── BRKB ─────────────────────────────────────────
+  {u:'BRKB',ticker:'BRKU', name:'Direxion Daily BRK.B Bull 2X Shares',     p:'Direxion',      type:'bull',lev:'2x',   vol:180000,  desc:'Подвоює денний рух Berkshire Hathaway B. Незвичайний продукт — навіть Баффет має leveraged ETF на свою компанію.'},
+  {u:'BRKB',ticker:'BRKC', name:'YieldMax BRK.B Option Income Strategy ETF',p:'YieldMax',     type:'cc',  lev:'1x',   vol:120000,  desc:'Covered call на Berkshire Hathaway. Найнижча волатильність серед YieldMax. Yield ~8-12% річних.'},
+
+  // ── GME ──────────────────────────────────────────
+  {u:'GME', ticker:'GMEY', name:'YieldMax GME Option Income Strategy ETF', p:'YieldMax',      type:'cc',  lev:'1x',   vol:890000,  desc:'Covered call на GameStop. Екстремальна meme-driven волатильність дає непередбачувані але потенційно величезні виплати.'},
+
+  // ── ABNB ─────────────────────────────────────────
+  {u:'ABNB',ticker:'ABNY', name:'YieldMax ABNB Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:80000,   desc:'Covered call на Airbnb. Помірна волатильність travel company. Yield ~20-30% річних від сезонних опційних premiums.'},
+
+  // ── RBLX ─────────────────────────────────────────
+  {u:'RBLX',ticker:'RBLY', name:'YieldMax RBLX Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:140000,  desc:'Covered call на Roblox. Висока волатильність gaming/metaverse компанії. Yield ~40-60% річних.'},
+
+  // ── DKNG ─────────────────────────────────────────
+  {u:'DKNG',ticker:'DRAY', name:'YieldMax DKNG Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:210000,  desc:'Covered call на DraftKings. Висока волатильність sports betting компанії. Yield ~45-65% річних.'},
+
+  // ── RDDT ─────────────────────────────────────────
+  {u:'RDDT',ticker:'RDYY', name:'YieldMax RDDT Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:320000,  desc:'Covered call на Reddit. Висока волатильність нової публічної компанії. Yield ~50-80% річних від великих premiums.'},
+
+  // ── HIMS ─────────────────────────────────────────
+  {u:'HIMS',ticker:'HIYY', name:'YieldMax HIMS Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:580000,  desc:'Covered call на Hims & Hers. Популярний через GLP-1/weight loss хвилю. Один з найвищих yield серед YieldMax ~80-120% річних.'},
+
+  // ── CRCL ─────────────────────────────────────────
+  {u:'CRCL',ticker:'CRCO', name:'YieldMax CRCL Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:890000,  desc:'Covered call на Circle Internet (USDC stablecoin emitter). Один з нових і найактивніших YieldMax фондів. Yield ~60-90% річних.'},
+
+  // ── MRNA ─────────────────────────────────────────
+  {u:'MRNA',ticker:'MRNY', name:'YieldMax MRNA Option Income Strategy ETF',p:'YieldMax',      type:'cc',  lev:'1x',   vol:180000,  desc:'Covered call на Moderna. Висока волатильність biotech/mRNA компанії після COVID піку. Yield ~40-60% річних.'},
+
+  // ── AI (C3.ai) ───────────────────────────────────
+  {u:'AI',  ticker:'AIYY', name:'YieldMax AI Option Income Strategy ETF',  p:'YieldMax',      type:'cc',  lev:'1x',   vol:120000,  desc:'Covered call на C3.ai. Висока волатильність enterprise AI компанії. Yield ~50-80% річних від великих option premiums.'},
+
+  // ── F (Ford) ─────────────────────────────────────
+  {u:'F',   ticker:'FRDL', name:'GraniteShares 2x Long F Daily ETF',       p:'GraniteShares', type:'bull',lev:'2x',   vol:280000,  desc:'Подвоює денний рух Ford Motor. Активний навколо EV transition news, UAW negotiations та quarterly sales.'},
+
+  // ── AAL ──────────────────────────────────────────
+  {u:'AAL', ticker:'AIRL', name:'GraniteShares 2x Long AAL Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:320000,  desc:'Подвоює денний рух American Airlines. Активний навколо fuel prices, travel demand та balance sheet news.'},
+  {u:'AAL', ticker:'AIRD', name:'GraniteShares 2x Short AAL Daily ETF',    p:'GraniteShares', type:'bear',lev:'-2x',  vol:120000,  desc:'Подвоює зворотній рух American Airlines. Для ставок на recession risk або fuel cost spikes.'},
+
+  // ── RIVN ─────────────────────────────────────────
+  {u:'RIVN',ticker:'RVNL', name:'GraniteShares 2x Long RIVN Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:620000,  desc:'Подвоює денний рух Rivian. Висока волатильність EV startup. Активний навколо production milestones та Amazon van deliveries.'},
+  {u:'RIVN',ticker:'RVD',  name:'GraniteShares 2x Short RIVN Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:180000,  desc:'Подвоює зворотній рух Rivian. Для ставок на cash burn concerns або EV market slowdown.'},
+
+  // ── LCID ─────────────────────────────────────────
+  {u:'LCID',ticker:'LCDL', name:'GraniteShares 2x Long LCID Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:480000,  desc:'Подвоює денний рух Lucid Group. Висока волатильність luxury EV maker з Saudi Arabia backing. Активний на delivery updates.'},
+
+  // ── GM ───────────────────────────────────────────
+  {u:'GM',  ticker:'GMML', name:'GraniteShares 2x Long GM Daily ETF',      p:'GraniteShares', type:'bull',lev:'2x',   vol:120000,  desc:'Подвоює денний рух General Motors. Активний навколо EV strategy updates, Cruise autonomous unit та quarterly earnings.'},
+
+  // ── SOFI ─────────────────────────────────────────
+  {u:'SOFI',ticker:'SFIU', name:'Rex Shares 2X Long SOFI ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:180000,  desc:'Подвоює денний рух SoFi Technologies. Активний навколо student loan policy, bank charter benefits та fintech growth metrics.'},
+
+  // ── NIO ──────────────────────────────────────────
+  {u:'NIO', ticker:'NIOL', name:'GraniteShares 2x Long NIO Daily ETF',     p:'GraniteShares', type:'bull',lev:'2x',   vol:380000,  desc:'Подвоює денний рух NIO (Chinese EV). Висока волатильність через China macro та EV competition. Активний на delivery data.'},
+
+  // ── INTC ─────────────────────────────────────────
+  {u:'INTC',ticker:'INTL', name:'GraniteShares 2x Long INTC Daily ETF',    p:'GraniteShares', type:'bull',lev:'2x',   vol:210000,  desc:'Подвоює денний рух Intel. Активний навколо foundry strategy updates, CHIPS Act funding та market share vs AMD/NVDA.'},
+  {u:'INTC',ticker:'INTD', name:'GraniteShares 2x Short INTC Daily ETF',   p:'GraniteShares', type:'bear',lev:'-2x',  vol:90000,   desc:'Подвоює зворотній рух Intel. Для ставок на продовження втрати ринкової частки або foundry delay.'},
+
+  // ── ARM ──────────────────────────────────────────
+  {u:'ARM', ticker:'ARMU', name:'Rex Shares 2X Long ARM ETF',              p:'Rex Shares',    type:'bull',lev:'2x',   vol:240000,  desc:'Подвоює денний рух Arm Holdings. Активний навколо AI chip licensing deals та Qualcomm/Apple royalty news.'},
+
+  // ── ORCL ─────────────────────────────────────────
+  {u:'ORCL',ticker:'ORCLU',name:'Rex Shares 2X Long ORCL ETF',             p:'Rex Shares',    type:'bull',lev:'2x',   vol:160000,  desc:'Подвоює денний рух Oracle. Активний навколо Cloud infrastructure wins та AI database announcements.'},
+ ]
+};
+
+let curF='all', curS='';
+function init(){ updStats(); render(); }
+function updStats(){
+  document.getElementById('statS').textContent=DB.stocks.length;
+  document.getElementById('statE').textContent=DB.etfs.length;
+}
+function onSearch(){ curS=document.getElementById('si').value.trim().toUpperCase(); render(); }
+function setF(t,btn){
+  curF=t;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function fmtV(v){ return v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v.toString(); }
+
+function render(){
+  const area=document.getElementById('mainArea');
+  const ri=document.getElementById('ri');
+  let stocks=DB.stocks;
+  if(curS) stocks=stocks.filter(s=>s.ticker===curS);
+  let totalE=0, html='';
+  stocks.forEach(s=>{
+    let etfs=DB.etfs.filter(e=>e.u===s.ticker);
+    if(curF!=='all') etfs=etfs.filter(e=>e.type===curF);
+    if(!etfs.length) return;
+    etfs=etfs.slice().sort((a,b)=>b.vol-a.vol);
+    totalE+=etfs.length;
+    const cards=etfs.map(e=>{
+      const tc=e.type==='bull'?'tc-bull':e.type==='bear'?'tc-bear':'tc-cc';
+      const sv=e.type==='bull'?'sv-bull':e.type==='bear'?'sv-bear':'sv-cc';
+      const tl=e.type==='bull'?'▲ Leveraged Bull':e.type==='bear'?'▼ Inverse Bear':'◎ Covered Call';
+      return `<div class="etf-card">
+        <div class="ec-head">
+          <div class="ec-ticker ${tc}">${e.ticker}</div>
+          <div class="ec-name">${e.name}</div>
+          <div class="ec-type t-${e.type}">${tl}</div>
+        </div>
+        <div class="ec-body">
+          <div class="ec-desc">${e.desc}</div>
+          <div class="ec-stats">
+            <div class="ec-stat"><div class="ec-stat-val ${sv}">${e.lev}</div><div class="ec-stat-lbl">Leverage</div></div>
+            <div class="ec-stat"><div class="ec-stat-val">${fmtV(e.vol)}</div><div class="ec-stat-lbl">Avg Vol / день</div></div>
+          </div>
+          <div class="ec-provider">Провайдер: ${e.p}</div>
+        </div>
+      </div>`;
+    }).join('');
+    html+=`<div class="stock-section">
+      <div class="stock-header">
+        <div class="stock-ticker">${s.ticker}</div>
+        <div><div class="stock-name">${s.name}</div><div class="stock-sector">${s.sector}</div></div>
+        <div class="stock-count">${etfs.length} ETF</div>
+      </div>
+      <div class="etf-grid">${cards}</div>
+    </div>`;
+  });
+  if(!html){
+    html=`<div class="empty"><div class="empty-icon">🔍</div>
+      <div class="empty-txt">${curS?'ETF для "'+curS+'" не знайдено':'Нічого не знайдено'}</div>
+      <div class="empty-sub">${curS?'Спробуй: NVDA TSLA AAPL AMZN MSFT GOOGL META COIN AMD MSTR PLTR MARA…':'Введи тікер у поле пошуку'}</div></div>`;
+    ri.textContent='';
+  } else {
+    ri.textContent=curS?`Знайдено ${totalE} ETF для ${curS}`:`Показано ${stocks.length} акцій · ${totalE} ETF`;
+  }
+  area.innerHTML=html;
+}
+function exportJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}));
+  a.download='lexx_single_stock_etf_db.json'; a.click();
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  new FileReader().onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.stocks||!d.etfs) throw new Error('Неправильна структура');
+      DB=d; updStats(); render();
+      alert('✓ База оновлена: '+DB.stocks.length+' акцій, '+DB.etfs.length+' ETF');
+    }catch(err){alert('Помилка: '+err.message);}
+  };
+  const r=new FileReader(); r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.stocks||!d.etfs)throw new Error('Неправильна структура');DB=d;updStats();render();alert('✓ Оновлено: '+DB.stocks.length+' акцій, '+DB.etfs.length+' ETF');}catch(err){alert('Помилка: '+err.message);}};
+  r.readAsText(f); ev.target.value='';
+}
+init();
+</script>
+</body>
+</html>
