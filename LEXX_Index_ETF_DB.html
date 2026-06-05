@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEXX — Index ETF Database</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8fafc;--sf:#fff;--s2:#f1f5f9;--bd:#e2e8f0;--bd2:#cbd5e1;
+  --ink:#1e293b;--txt:#334155;--mut:#64748b;--sub:#94a3b8;
+  --blue:#2563eb;--blt:#eff6ff;--bbd:#93c5fd;
+  --green:#16a34a;--glt:#f0fdf4;--gbd:#86efac;
+  --red:#dc2626;--rlt:#fef2f2;--rbd:#fca5a5;
+  --purple:#7c3aed;--plt:#f5f3ff;--pbd:#ddd6fe;
+  --orange:#ea580c;--olt:#fff7ed;--obd:#fed7aa;
+  --teal:#0d9488;--tlt:#f0fdfa;--tbd:#99f6e4;
+  --sans:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--ink);padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--blue)}
+.h-logo{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff}
+.h-logo span{color:#60a5fa}
+.h-badge{background:var(--blue);color:#fff;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:3px;margin-left:4px}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.h-stat{font-size:11px;color:#94a3b8;font-family:var(--mono)}
+.h-stat span{color:#60a5fa;font-weight:600}
+
+/* TAB BAR */
+.tab-nav{background:var(--sf);border-bottom:2px solid var(--bd);display:flex;padding:0 24px}
+.tnav{padding:14px 20px;font-size:13px;font-weight:600;color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px}
+.tnav:hover{color:var(--ink)}
+.tnav.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* PANEL */
+.panel{display:none;padding:22px 24px}
+.panel.active{display:block;max-width:1200px;margin:0 auto}
+
+/* ── TAB 1: BROWSE BY INDEX ── */
+.index-layout{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+@media(max-width:780px){.index-layout{grid-template-columns:1fr}}
+
+.index-list{background:var(--sf);border:1px solid var(--bd);border-radius:10px;overflow:hidden;position:sticky;top:16px}
+.il-head{background:var(--s2);padding:12px 16px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--bd)}
+.idx-group{border-bottom:1px solid var(--bd)}
+.idx-group-lbl{padding:8px 16px 4px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--sub);background:var(--s2)}
+.idx-item{padding:11px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.idx-item:hover{background:var(--blt);border-left-color:var(--bbd)}
+.idx-item.active{background:var(--blt);border-left-color:var(--blue)}
+.idx-ticker{font-family:var(--mono);font-size:13px;font-weight:700;min-width:50px}
+.idx-name{font-size:12px;color:var(--mut)}
+.idx-cnt{margin-left:auto;font-size:10px;color:var(--sub);font-family:var(--mono)}
+
+.etf-panel{}
+.ep-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid var(--bd)}
+.ep-title{font-size:22px;font-weight:700}
+.ep-desc{font-size:13px;color:var(--mut);margin-top:3px;line-height:1.5}
+.ep-stats{font-size:11px;color:var(--sub);font-family:var(--mono);text-align:right;flex-shrink:0;margin-left:16px}
+
+/* ── TAB 2: SEARCH ── */
+.search-wrap{max-width:700px;margin:0 auto}
+.search-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.search-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.search-input{font-family:var(--mono);font-size:22px;font-weight:600;border:2px solid var(--bd2);border-radius:8px;padding:11px 16px;outline:none;width:200px;text-transform:uppercase;letter-spacing:2px;background:var(--sf);color:var(--ink);transition:border-color .15s}
+.search-input:focus{border-color:var(--blue);background:var(--blt)}
+.search-input::placeholder{color:var(--sub);font-size:15px;letter-spacing:1px;text-transform:none}
+.search-hint{font-size:12px;color:var(--mut)}
+.search-results{margin-top:20px}
+
+/* SHARED: FILTER ROW */
+.filter-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.fbtn{background:var(--sf);border:1.5px solid var(--bd);color:var(--mut);font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fbtn:hover{border-color:var(--bd2);color:var(--ink)}
+.fbtn.active{color:#fff;border-color:transparent}
+.fa.active{background:var(--ink)}
+.fb.active{background:var(--green)}
+.fc.active{background:var(--red)}
+.fd.active{background:var(--purple)}
+.fe.active{background:var(--teal)}
+
+/* ETF GRID */
+.etf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:10px}
+.etf-card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;overflow:hidden;transition:box-shadow .15s}
+.etf-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.ec-head{padding:11px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+.ec-ticker{font-family:var(--mono);font-size:15px;font-weight:700;min-width:58px}
+.tc-std{color:var(--blue)}.tc-bull{color:var(--green)}.tc-bear{color:var(--red)}.tc-cc{color:var(--purple)}.tc-factor{color:var(--teal)}
+.ec-name{font-size:11.5px;color:var(--txt);line-height:1.4;flex:1}
+.ec-type{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:3px;flex-shrink:0}
+.t-std{background:var(--blt);color:var(--blue);border:1px solid var(--bbd)}
+.t-bull{background:var(--glt);color:var(--green);border:1px solid var(--gbd)}
+.t-bear{background:var(--rlt);color:var(--red);border:1px solid var(--rbd)}
+.t-cc{background:var(--plt);color:var(--purple);border:1px solid var(--pbd)}
+.t-factor{background:var(--tlt);color:var(--teal);border:1px solid var(--tbd)}
+.ec-body{padding:11px 14px}
+.ec-desc{font-size:11.5px;color:var(--mut);line-height:1.6;margin-bottom:10px}
+.ec-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ec-stat{background:var(--s2);border-radius:5px;padding:6px 8px;text-align:center}
+.ec-stat-val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
+.sv-std{color:var(--blue)}.sv-bull{color:var(--green)}.sv-bear{color:var(--red)}.sv-cc{color:var(--purple)}.sv-factor{color:var(--teal)}
+.ec-stat-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--sub);margin-top:1px}
+.ec-provider{font-size:10px;color:var(--sub);margin-top:7px}
+
+/* RELATED BADGE */
+.related-idx{display:inline-flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--mut);margin-top:6px;font-family:var(--mono)}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--mut)}
+.empty-icon{font-size:44px;margin-bottom:12px;opacity:.3}
+.empty-txt{font-size:14px;margin-bottom:5px}
+.empty-sub{font-size:12px;color:var(--sub)}
+
+/* SEARCH MATCH SECTION */
+.match-section{margin-bottom:24px}
+.match-head{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.match-head::after{content:'';flex:1;height:1px;background:var(--bd)}
+.match-direct{border:2px solid var(--blue);border-radius:8px;padding:14px;background:var(--blt);margin-bottom:14px}
+.md-ticker{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--blue)}
+.md-name{font-size:13px;color:var(--txt);margin-top:2px}
+.md-index{font-size:11px;color:var(--mut);margin-top:4px}
+.md-desc{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.6}
+.md-stats{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.mds{text-align:center;background:var(--sf);border:1px solid var(--bbd);border-radius:5px;padding:6px 12px}
+.mds-v{font-family:var(--mono);font-size:14px;font-weight:600}
+.mds-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-top:1px}
+
+.footer{background:var(--sf);border-top:1px solid var(--bd);padding:12px 24px;font-size:11px;color:var(--sub);text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="h-logo">LEXX <span>International</span><span class="h-badge">Index ETF Database</span></div>
+  </div>
+  <div class="h-right">
+    <div class="h-stat">Індексів: <span id="statI">0</span> · ETF: <span id="statE">0</span></div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tab-nav">
+  <div class="tnav active" onclick="switchTab('browse',this)">📊 Перегляд за індексом</div>
+  <div class="tnav" onclick="switchTab('search',this)">🔍 Пошук по тікеру ETF</div>
+</div>
+
+<!-- TAB 1: BROWSE -->
+<div class="panel active" id="tab-browse">
+  <div class="index-layout">
+    <div>
+      <div class="index-list" id="indexList"></div>
+    </div>
+    <div>
+      <div class="etf-panel" id="etfPanel">
+        <div class="empty"><div class="empty-icon">👈</div><div class="empty-txt">Вибери індекс зліва</div><div class="empty-sub">Відображаться всі ETF на цей індекс, відсортовані за обсягом</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: SEARCH -->
+<div class="panel" id="tab-search">
+  <div class="search-wrap">
+    <div class="search-lbl">Пошук ETF за тікером</div>
+    <div class="search-row">
+      <input class="search-input" id="searchInput" placeholder="SPY, TQQQ…" maxlength="6"
+             oninput="doSearch()" onkeydown="if(event.key==='Escape'){this.value='';doSearch()}">
+      <div class="search-hint">Вбий тікер будь-якого ETF → знайдеш схожі та пов'язані по тому ж індексу</div>
+    </div>
+    <div id="searchResults">
+      <div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Введи тікер для пошуку</div><div class="empty-sub">Наприклад: SPY, QQQ, TQQQ, SOXL, IWM, DIA, FXI</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Дані про обсяги торгів орієнтовні (середні денні). Leveraged та Inverse ETF призначені для короткострокової торгівлі. Не є інвестиційною рекомендацією. · Оновлено: червень 2025
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATABASE
+// ══════════════════════════════════════════════════════
+const INDICES = [
+  // ─── Основні американські ───────────────────────────
+  { id:'sp500',   ticker:'SPX',   name:'S&P 500',          group:'us_major',   desc:'500 найбільших публічних компаній США. Найважливіший барометр американської економіки. Зважений за ринковою капіталізацією.' },
+  { id:'ndx',     ticker:'NDX',   name:'NASDAQ-100',        group:'us_major',   desc:'100 найбільших нефінансових компаній NASDAQ. Домінують tech-гіганти — Apple, NVIDIA, Microsoft, Amazon, Meta, Alphabet.' },
+  { id:'comp',    ticker:'COMP',  name:'NASDAQ Composite',  group:'us_major',   desc:'Всі ~3500 акцій лістингованих на NASDAQ. Ширший за NDX, але менш популярний як індекс для ETF.' },
+  { id:'rut',     ticker:'RUT',   name:'Russell 2000',      group:'us_major',   desc:'2000 компаній малої капіталізації США (small-cap). Індикатор стану внутрішньої американської економіки.' },
+  { id:'dji',     ticker:'DJI',   name:'Dow Jones (DJIA)',  group:'us_major',   desc:'30 найбільших "blue chip" компаній США. Найстаріший індекс (1896). Price-weighted — дорожча акція має більшу вагу.' },
+  // ─── Сектори S&P 500 ─────────────────────────────────
+  { id:'xlk',     ticker:'XLK',   name:'Technology (S&P)',  group:'sector',     desc:'Технологічний сектор S&P 500. Apple, NVIDIA, Microsoft, Broadcom, Salesforce. ~32% від ваги S&P 500.' },
+  { id:'xlf',     ticker:'XLF',   name:'Financials (S&P)',  group:'sector',     desc:'Фінансовий сектор. JPMorgan, Berkshire, Visa, Mastercard, Bank of America. Чутливий до ставок ФРС.' },
+  { id:'xle',     ticker:'XLE',   name:'Energy (S&P)',      group:'sector',     desc:'Енергетичний сектор. ExxonMobil, Chevron, ConocoPhillips. Корелює з нафтою (WTI/Brent).' },
+  { id:'xlv',     ticker:'XLV',   name:'Health Care (S&P)', group:'sector',     desc:'Охорона здоров\'я. UnitedHealth, Johnson & Johnson, AbbVie, Eli Lilly. Defensive сектор.' },
+  { id:'xli',     ticker:'XLI',   name:'Industrials (S&P)', group:'sector',     desc:'Промисловий сектор. GE Aerospace, Caterpillar, Union Pacific, Honeywell. Циклічний.' },
+  { id:'xlc',     ticker:'XLC',   name:'Comm. Services',    group:'sector',     desc:'Комунікаційні сервіси. Meta, Alphabet, Netflix, Disney, T-Mobile. Гібрид tech і media.' },
+  { id:'xly',     ticker:'XLY',   name:'Cons. Discretionary',group:'sector',   desc:'Дискреційний споживач. Amazon, Tesla, McDonald\'s, Nike. Падає при рецесії.' },
+  { id:'xlp',     ticker:'XLP',   name:'Cons. Staples',     group:'sector',     desc:'Товари першої необхідності. Procter & Gamble, Coca-Cola, Walmart. Defensive — стабільний в кризи.' },
+  { id:'xlb',     ticker:'XLB',   name:'Materials (S&P)',   group:'sector',     desc:'Матеріали та хімія. Linde, Air Products, Nucor, Freeport-McMoRan. Циклічний.' },
+  { id:'xlre',    ticker:'XLRE',  name:'Real Estate (S&P)', group:'sector',     desc:'Нерухомість і REITs. American Tower, Prologis, Crown Castle. Чутливий до процентних ставок.' },
+  { id:'xlu',     ticker:'XLU',   name:'Utilities (S&P)',   group:'sector',     desc:'Комунальні послуги. NextEra, Duke Energy, Southern Company. Defensive, high dividend, чутливий до ставок.' },
+  // ─── Тематичні/Specialty ────────────────────────────
+  { id:'smh',     ticker:'SMH',   name:'Semiconductors',    group:'thematic',   desc:'Провідний ETF напівпровідникової галузі. NVIDIA, TSMC, ASML, Broadcom, Qualcomm. Ключовий для AI trade.' },
+  { id:'xbi',     ticker:'XBI',   name:'Biotechnology',     group:'thematic',   desc:'Equal-weighted biotech ETF (SPDR). Менша залежність від гігантів, більша від клінічних результатів.' },
+  { id:'gdx',     ticker:'GDX',   name:'Gold Miners',       group:'thematic',   desc:'Провідні золотодобувні компанії. Newmont, Barrick, Agnico Eagle. Корелює з ціною золота з плечем ~2x.' },
+  // ─── Міжнародні ─────────────────────────────────────
+  { id:'fxi',     ticker:'FXI',   name:'China Large-Cap',   group:'intl',       desc:'50 найбільших компаній, торгованих в Гонконзі (H-shares). Alibaba, Tencent, Meituan. Чутливий до регуляцій КНР.' },
+  { id:'kweb',    ticker:'KWEB',  name:'China Internet',    group:'intl',       desc:'Китайські інтернет-компанії. Alibaba, Tencent, Meituan, JD, Pinduoduo. Вища волатильність ніж FXI.' },
+  { id:'eem',     ticker:'EEM',   name:'Emerging Markets',  group:'intl',       desc:'Широкий basket emerging markets: Китай, Індія, Тайвань, Бразилія, ПАР та ін. iShares флагман.' },
+];
+
+const ETFS = [
+  // ══ S&P 500 ══════════════════════════════════════════
+  {idx:'sp500',ticker:'SPY', name:'SPDR S&P 500 ETF Trust',                     p:'State Street',type:'std',   lev:'1x',   vol:85000000, desc:'Найперший і найбільший ETF у світі ($560+ млрд AUM). Точно відстежує S&P 500. Стандарт для інституційних трейдерів. Засновано 1993.'},
+  {idx:'sp500',ticker:'IVV', name:'iShares Core S&P 500 ETF',                   p:'BlackRock',   type:'std',   lev:'1x',   vol:6500000,  desc:'iShares аналог SPY. Менший спред ніж SPY — популярний для довгострокового тримання. $530+ млрд AUM.'},
+  {idx:'sp500',ticker:'VOO', name:'Vanguard S&P 500 ETF',                       p:'Vanguard',    type:'std',   lev:'1x',   vol:6000000,  desc:'Vanguard варіант S&P 500. Найнижча expense ratio серед великих. $520+ млрд AUM. Улюблений пасивних інвесторів.'},
+  {idx:'sp500',ticker:'SPLG',name:'SPDR Portfolio S&P 500 ETF',                 p:'State Street',type:'std',   lev:'1x',   vol:5500000,  desc:'Бюджетна альтернатива SPY від того ж провайдера. Нижча ціна акції робить його доступнішим для роздрібних інвесторів.'},
+  {idx:'sp500',ticker:'UPRO',name:'ProShares UltraPro S&P 500 (3x Bull)',       p:'ProShares',   type:'bull',  lev:'3x',   vol:9500000,  desc:'Потроює денний рух S&P 500. Один з найпопулярніших leveraged ETF. Підходить тільки для денної торгівлі через volatility decay.'},
+  {idx:'sp500',ticker:'SPXL',name:'Direxion Daily S&P 500 Bull 3X Shares',     p:'Direxion',    type:'bull',  lev:'3x',   vol:16000000, desc:'Конкурент UPRO від Direxion. 3x денний рух S&P 500. Найбільш торгований 3x S&P ETF за обсягом.'},
+  {idx:'sp500',ticker:'SSO', name:'ProShares Ultra S&P 500 (2x Bull)',          p:'ProShares',   type:'bull',  lev:'2x',   vol:4200000,  desc:'Подвоює денний рух S&P 500. Помірніший ризик ніж UPRO/SPXL. Популярний для swing trades.'},
+  {idx:'sp500',ticker:'SPXS',name:'Direxion Daily S&P 500 Bear 3X Shares',     p:'Direxion',    type:'bear',  lev:'-3x',  vol:18000000, desc:'Потроює зворотній денний рух S&P 500. Один з найактивніших bear ETF. Хедж або ставка на market crash.'},
+  {idx:'sp500',ticker:'SPXU',name:'ProShares UltraPro Short S&P 500 (3x Bear)',p:'ProShares',   type:'bear',  lev:'-3x',  vol:7500000,  desc:'Аналог SPXS від ProShares. Потроює падіння S&P 500. Активний в periodах ринкової нестабільності.'},
+  {idx:'sp500',ticker:'SH',  name:'ProShares Short S&P 500 (1x Bear)',          p:'ProShares',   type:'bear',  lev:'-1x',  vol:2800000,  desc:'Зворотній ETF 1:1 на S&P 500. Найконсервативніший bear продукт. Популярний у пенсійних хеджерів.'},
+  {idx:'sp500',ticker:'SPDN',name:'Direxion Daily S&P 500 Bear 1X Shares',     p:'Direxion',    type:'bear',  lev:'-1x',  vol:1200000,  desc:'Аналог SH від Direxion. 1:1 зворотній S&P 500. Менш поширений за SH але аналогічна стратегія.'},
+  {idx:'sp500',ticker:'XYLD',name:'Global X S&P 500 Covered Call ETF',         p:'Global X',    type:'cc',    lev:'1x',   vol:1100000,  desc:'Covered call стратегія на S&P 500. Продає щомісячні at-the-money calls. Yield ~10-12% річних. Обмежує upside.'},
+  {idx:'sp500',ticker:'JEPI',name:'JPMorgan Equity Premium Income ETF',        p:'JPMorgan',    type:'cc',    lev:'1x',   vol:5200000,  desc:'Найбільший covered call ETF ($35+ млрд AUM). Продає ELN (equity-linked notes) замість прямих calls. Yield ~7-9% річних. Менш обмежує upside ніж XYLD.'},
+  {idx:'sp500',ticker:'SPYI',name:'NEOS S&P 500 High Income ETF',              p:'NEOS',        type:'cc',    lev:'1x',   vol:1800000,  desc:'Covered call на S&P 500 з оптимізованою податковою структурою. Yield ~12-14% річних. Популярний серед income investors.'},
+  {idx:'sp500',ticker:'XDTE',name:'Roundhill S&P 500 0DTE Covered Call ETF',  p:'Roundhill',   type:'cc',    lev:'1x',   vol:1400000,  desc:'Продає 0DTE (zero days to expiration) options на S&P 500 щодня. Найвищий потенційний yield серед S&P CC ETF ~25-35% річних.'},
+
+  // ══ NASDAQ-100 ═══════════════════════════════════════
+  {idx:'ndx',ticker:'QQQ',  name:'Invesco QQQ Trust',                           p:'Invesco',     type:'std',   lev:'1x',   vol:45000000, desc:'Найвідоміший tech ETF у світі ($260+ млрд AUM). Відстежує NASDAQ-100. Другий за обсягом ETF в США після SPY.'},
+  {idx:'ndx',ticker:'QQQM', name:'Invesco NASDAQ 100 ETF (Mini QQQ)',           p:'Invesco',     type:'std',   lev:'1x',   vol:5500000,  desc:'Менша "роздрібна" версія QQQ. Ідентичний склад але нижча ціна акції. Кращий варіант для довгострокового тримання.'},
+  {idx:'ndx',ticker:'TQQQ', name:'ProShares UltraPro QQQ (3x Bull)',           p:'ProShares',   type:'bull',  lev:'3x',   vol:72000000, desc:'Найбільш торгований leveraged ETF в США за обсягом ($20+ млрд AUM). Потроює денний рух NASDAQ-100. Улюблений tech bulls.'},
+  {idx:'ndx',ticker:'QLD',  name:'ProShares Ultra QQQ (2x Bull)',              p:'ProShares',   type:'bull',  lev:'2x',   vol:3100000,  desc:'Подвоює денний рух NASDAQ-100. Менш ризикований ніж TQQQ. Популярний для тижневих tech trades.'},
+  {idx:'ndx',ticker:'SQQQ', name:'ProShares UltraPro Short QQQ (3x Bear)',    p:'ProShares',   type:'bear',  lev:'-3x',  vol:65000000, desc:'Найбільший bear leveraged ETF. Потроює падіння NASDAQ-100. Дуже активний під час tech selloffs та Fed hawkish сесій.'},
+  {idx:'ndx',ticker:'PSQ',  name:'ProShares Short QQQ (1x Bear)',              p:'ProShares',   type:'bear',  lev:'-1x',  vol:1200000,  desc:'Консервативний 1x bear на NASDAQ-100. Для обережного хеджу tech позицій без подвійного плеча.'},
+  {idx:'ndx',ticker:'QID',  name:'ProShares UltraShort QQQ (2x Bear)',        p:'ProShares',   type:'bear',  lev:'-2x',  vol:1100000,  desc:'Подвоює падіння NASDAQ-100. Середня агресивність між PSQ та SQQQ.'},
+  {idx:'ndx',ticker:'QYLD', name:'Global X NASDAQ 100 Covered Call ETF',      p:'Global X',    type:'cc',    lev:'1x',   vol:2800000,  desc:'Covered call на NASDAQ-100. Продає monthly at-the-money calls на QQQ. Yield ~11-13% річних. Втрачає значний upside.'},
+  {idx:'ndx',ticker:'JEPQ', name:'JPMorgan NASDAQ Equity Premium Income ETF', p:'JPMorgan',    type:'cc',    lev:'1x',   vol:4800000,  desc:'JPMorgan аналог JEPI але на NASDAQ-100. $16+ млрд AUM. Yield ~9-11% річних. Менш обмежує upside ніж QYLD.'},
+  {idx:'ndx',ticker:'QQQI', name:'NEOS NASDAQ 100 High Income ETF',           p:'NEOS',        type:'cc',    lev:'1x',   vol:1200000,  desc:'Covered call на NASDAQ з оптимізованою податковою структурою. Yield ~15-20% річних. Конкурент QYLD з кращою структурою.'},
+  {idx:'ndx',ticker:'QQQY', name:'Defiance NASDAQ 100 Enhanced Income ETF',  p:'Defiance',    type:'cc',    lev:'1x',   vol:980000,   desc:'0DTE covered calls на QQQ. Дуже високий yield ~35-50% річних. Значна волатильність виплат щотижня.'},
+
+  // ══ NASDAQ COMPOSITE ═════════════════════════════════
+  {idx:'comp',ticker:'ONEQ',name:'Fidelity NASDAQ Composite Index ETF',       p:'Fidelity',    type:'std',   lev:'1x',   vol:280000,   desc:'Єдиний великий ETF що відстежує повний NASDAQ Composite (~3500 акцій). Набагато менший AUM та ліквідність ніж QQQ.'},
+
+  // ══ RUSSELL 2000 ══════════════════════════════════════
+  {idx:'rut',ticker:'IWM',  name:'iShares Russell 2000 ETF',                  p:'BlackRock',   type:'std',   lev:'1x',   vol:32000000, desc:'Найбільший small-cap ETF ($75+ млрд AUM). Стандартний інструмент для доступу до малих компаній США. Індикатор domestic economy.'},
+  {idx:'rut',ticker:'VTWO', name:'Vanguard Russell 2000 ETF',                 p:'Vanguard',    type:'std',   lev:'1x',   vol:1800000,  desc:'Vanguard аналог IWM. Нижча expense ratio. Менший AUM і ліквідність. Кращий для довгострокового тримання.'},
+  {idx:'rut',ticker:'TNA',  name:'Direxion Daily Small Cap Bull 3X Shares',  p:'Direxion',    type:'bull',  lev:'3x',   vol:11000000, desc:'Потроює денний рух Russell 2000. Найактивніший leveraged small-cap ETF. Особливо волатильний навколо Fed рішень.'},
+  {idx:'rut',ticker:'UWM',  name:'ProShares Ultra Russell 2000 (2x Bull)',   p:'ProShares',   type:'bull',  lev:'2x',   vol:1100000,  desc:'Подвоює денний рух Russell 2000. Менш агресивний ніж TNA. Для swing trades на small-cap сектор.'},
+  {idx:'rut',ticker:'TZA',  name:'Direxion Daily Small Cap Bear 3X Shares',  p:'Direxion',    type:'bear',  lev:'-3x',  vol:9500000,  desc:'Потроює падіння Russell 2000. Активний під час recession fears та risk-off режимів коли small-caps страждають найбільше.'},
+  {idx:'rut',ticker:'TWM',  name:'ProShares UltraShort Russell 2000 (2x Bear)',p:'ProShares',  type:'bear',  lev:'-2x',  vol:580000,   desc:'Подвоює падіння Russell 2000. Середня агресивність між RWM та TZA.'},
+  {idx:'rut',ticker:'RWM',  name:'ProShares Short Russell 2000 (1x Bear)',   p:'ProShares',   type:'bear',  lev:'-1x',  vol:520000,   desc:'Консервативний 1x bear на Russell 2000. Для хеджування small-cap позицій без подвійного плеча.'},
+  {idx:'rut',ticker:'RYLD', name:'Global X Russell 2000 Covered Call ETF',  p:'Global X',    type:'cc',    lev:'1x',   vol:620000,   desc:'Covered call стратегія на Russell 2000. Висока волатильність small-caps дає кращі premiums. Yield ~12-15% річних.'},
+
+  // ══ DOW JONES ════════════════════════════════════════
+  {idx:'dji',ticker:'DIA',  name:'SPDR Dow Jones Industrial Average ETF',    p:'State Street',type:'std',   lev:'1x',   vol:3800000,  desc:'Єдиний великий ETF що відстежує DJIA. Price-weighted — як і сам індекс. $34+ млрд AUM. Консервативніший за SPY та QQQ.'},
+  {idx:'dji',ticker:'UDOW', name:'ProShares UltraPro Dow 30 (3x Bull)',      p:'ProShares',   type:'bull',  lev:'3x',   vol:1200000,  desc:'Потроює денний рух Dow Jones. Менш популярний ніж SPXL/UPRO через меншу волатильність DJIA.'},
+  {idx:'dji',ticker:'DDM',  name:'ProShares Ultra Dow30 (2x Bull)',          p:'ProShares',   type:'bull',  lev:'2x',   vol:280000,   desc:'Подвоює денний рух Dow Jones. Консервативніша leveraged ставка на blue chips.'},
+  {idx:'dji',ticker:'SDOW', name:'ProShares UltraPro Short Dow30 (3x Bear)',p:'ProShares',   type:'bear',  lev:'-3x',  vol:820000,   desc:'Потроює падіння Dow Jones. Хедж або ведмежа ставка на 30 найбільших американських blue chips.'},
+  {idx:'dji',ticker:'DXD',  name:'ProShares UltraShort Dow30 (2x Bear)',    p:'ProShares',   type:'bear',  lev:'-2x',  vol:320000,   desc:'Подвоює падіння Dow Jones. Середній рівень агресивності серед bear DJIA ETF.'},
+  {idx:'dji',ticker:'DOG',  name:'ProShares Short Dow30 (1x Bear)',          p:'ProShares',   type:'bear',  lev:'-1x',  vol:210000,   desc:'Консервативний 1x bear на Dow Jones. Найменш агресивний варіант для хеджування blue chip позицій.'},
+
+  // ══ XLK — TECHNOLOGY ══════════════════════════════════
+  {idx:'xlk',ticker:'XLK',  name:'Technology Select Sector SPDR Fund',       p:'State Street',type:'std',   lev:'1x',   vol:9500000,  desc:'Flagship tech sector ETF. Apple ~21%, NVIDIA ~21%, Microsoft ~19%. Домінують три компанії. $70+ млрд AUM.'},
+  {idx:'xlk',ticker:'VGT',  name:'Vanguard Information Technology ETF',      p:'Vanguard',    type:'std',   lev:'1x',   vol:1200000,  desc:'Ширший за XLK tech ETF від Vanguard (~350 компаній vs ~70). Більша диверсифікація всередині сектору.'},
+  {idx:'xlk',ticker:'TECL', name:'Direxion Daily Technology Bull 3X Shares', p:'Direxion',    type:'bull',  lev:'3x',   vol:6200000,  desc:'Потроює денний рух tech sector (XLK). Найбільш торгований leveraged sector ETF. Активний під час AI rallies.'},
+  {idx:'xlk',ticker:'TECS', name:'Direxion Daily Technology Bear 3X Shares', p:'Direxion',    type:'bear',  lev:'-3x',  vol:2500000,  desc:'Потроює падіння tech sector. Хедж або ведмежа ставка під час tech selloffs та hawkish Fed.'},
+
+  // ══ XLF — FINANCIALS ══════════════════════════════════
+  {idx:'xlf',ticker:'XLF',  name:'Financial Select Sector SPDR Fund',        p:'State Street',type:'std',   lev:'1x',   vol:42000000, desc:'Найбільш торгований sector ETF. Berkshire, JPMorgan, Visa, Mastercard, BofA. Чутливий до рішень ФРС по ставці.'},
+  {idx:'xlf',ticker:'KBE',  name:'SPDR S&P Bank ETF',                        p:'State Street',type:'std',   lev:'1x',   vol:3800000,  desc:'Тільки банки (не весь фінансовий сектор). Equal-weighted — менша концентрація в топ-компаніях ніж XLF.'},
+  {idx:'xlf',ticker:'FAS',  name:'Direxion Daily Financial Bull 3X Shares',  p:'Direxion',    type:'bull',  lev:'3x',   vol:6800000,  desc:'Потроює денний рух фінансового сектору (XLF). Дуже активний після підвищень ставки ФРС та earnings банків.'},
+  {idx:'xlf',ticker:'FAZ',  name:'Direxion Daily Financial Bear 3X Shares',  p:'Direxion',    type:'bear',  lev:'-3x',  vol:4200000,  desc:'Потроює падіння фінансового сектору. Активний під час banking crisis (SVB 2023) та recession fears.'},
+
+  // ══ XLE — ENERGY ══════════════════════════════════════
+  {idx:'xle',ticker:'XLE',  name:'Energy Select Sector SPDR Fund',           p:'State Street',type:'std',   lev:'1x',   vol:18000000, desc:'ExxonMobil ~23%, Chevron ~17%. Безпосередньо корелює з нафтою WTI. Активний при geopolitical events.'},
+  {idx:'xle',ticker:'XOP',  name:'SPDR S&P Oil & Gas E&P ETF',               p:'State Street',type:'std',   lev:'1x',   vol:7500000,  desc:'Equal-weighted E&P (exploration & production) компанії. Вища волатильність ніж XLE, менш залежний від мажорів.'},
+  {idx:'xle',ticker:'ERX',  name:'Direxion Daily Energy Bull 2X Shares',     p:'Direxion',    type:'bull',  lev:'2x',   vol:4500000,  desc:'Подвоює денний рух енергетичного сектору. Активний при нафтових price spikes та geopolitical tensions.'},
+  {idx:'xle',ticker:'ERY',  name:'Direxion Daily Energy Bear 2X Shares',     p:'Direxion',    type:'bear',  lev:'-2x',  vol:2200000,  desc:'Подвоює падіння енергетичного сектору. Для ставок на oil demand destruction або OPEC+ overproduction.'},
+
+  // ══ XLV — HEALTH CARE ═════════════════════════════════
+  {idx:'xlv',ticker:'XLV',  name:'Health Care Select Sector SPDR Fund',      p:'State Street',type:'std',   lev:'1x',   vol:6800000,  desc:'UnitedHealth ~11%, Johnson & Johnson ~8%, AbbVie ~7%, Eli Lilly ~7%. Defensive сектор.'},
+  {idx:'xlv',ticker:'LABU', name:'Direxion Daily S&P Biotech Bull 3X Shares',p:'Direxion',    type:'bull',  lev:'3x',   vol:12000000, desc:'Потроює денний рух XBI (biotech). Один з найволатильніших ETF ринку. Рухається різко на FDA approvals і clinical data.'},
+  {idx:'xlv',ticker:'LABD', name:'Direxion Daily S&P Biotech Bear 3X Shares',p:'Direxion',    type:'bear',  lev:'-3x',  vol:7200000,  desc:'Потроює падіння XBI (biotech). Для ставок на clinical failures або regulatory rejections у biopharmaceutical секторі.'},
+
+  // ══ XLI — INDUSTRIALS ═════════════════════════════════
+  {idx:'xli',ticker:'XLI',  name:'Industrial Select Sector SPDR Fund',       p:'State Street',type:'std',   lev:'1x',   vol:4200000,  desc:'GE Aerospace, Caterpillar, Union Pacific, Honeywell, RTX. Циклічний — зростає з економікою.'},
+
+  // ══ XLC — COMMUNICATION ═══════════════════════════════
+  {idx:'xlc',ticker:'XLC',  name:'Communication Services Select Sector SPDR',p:'State Street',type:'std',   lev:'1x',   vol:3800000,  desc:'Meta ~23%, Alphabet ~22%, Netflix ~4%, Disney ~3%, T-Mobile ~4%. Hybrid tech+media сектор.'},
+
+  // ══ XLY — CONS. DISCRETIONARY ════════════════════════
+  {idx:'xly',ticker:'XLY',  name:'Consumer Discret. Select Sector SPDR',    p:'State Street',type:'std',   lev:'1x',   vol:4600000,  desc:'Amazon ~22%, Tesla ~15%, McDonald\'s ~5%, Nike ~4%. Падає при рецесії, зростає при сильному споживанні.'},
+
+  // ══ XLP — CONS. STAPLES ═══════════════════════════════
+  {idx:'xlp',ticker:'XLP',  name:'Consumer Staples Select Sector SPDR',     p:'State Street',type:'std',   lev:'1x',   vol:7800000,  desc:'Procter & Gamble ~16%, Costco ~11%, Coca-Cola ~9%, PepsiCo ~7%. Defensive — стабільний в будь-якій економіці.'},
+
+  // ══ XLB — MATERIALS ═══════════════════════════════════
+  {idx:'xlb',ticker:'XLB',  name:'Materials Select Sector SPDR Fund',       p:'State Street',type:'std',   lev:'1x',   vol:4100000,  desc:'Linde ~19%, Air Products ~7%, Nucor ~4%. Циклічний, корелює з промисловим виробництвом і commodities.'},
+
+  // ══ XLRE — REAL ESTATE ════════════════════════════════
+  {idx:'xlre',ticker:'XLRE',name:'Real Estate Select Sector SPDR Fund',     p:'State Street',type:'std',   lev:'1x',   vol:2900000,  desc:'American Tower ~12%, Prologis ~10%, Crown Castle ~8%. Чутливий до ставок — падає при hawkish Fed, росте при rate cuts.'},
+
+  // ══ XLU — UTILITIES ═══════════════════════════════════
+  {idx:'xlu',ticker:'XLU',  name:'Utilities Select Sector SPDR Fund',       p:'State Street',type:'std',   lev:'1x',   vol:8500000,  desc:'NextEra ~17%, Duke Energy ~8%, Southern Company ~7%. Defensive, high dividend. Чутливий до ставок. Виграє від AI energy demand.'},
+
+  // ══ SEMICONDUCTORS (SMH) ═════════════════════════════
+  {idx:'smh',ticker:'SMH',  name:'VanEck Semiconductor ETF',                p:'VanEck',      type:'std',   lev:'1x',   vol:9500000,  desc:'Провідний semiconductor ETF. NVIDIA ~21%, TSMC ~14%, ASML ~7%, Broadcom ~8%. Ключовий для AI/chip trades.'},
+  {idx:'smh',ticker:'SOXX', name:'iShares Semiconductor ETF',               p:'BlackRock',   type:'std',   lev:'1x',   vol:2800000,  desc:'iShares аналог SMH. Більш рівномірно зважений. Intel, Qualcomm, AMD включені з більшою вагою ніж в SMH.'},
+  {idx:'smh',ticker:'SOXL', name:'Direxion Daily Semiconductor Bull 3X',   p:'Direxion',    type:'bull',  lev:'3x',   vol:38000000, desc:'Найбільш торгований semiconductor ETF ($10+ млрд AUM). Потроює денний рух SOXX. Улюблений AI/chip bull трейдерів.'},
+  {idx:'smh',ticker:'SOXS', name:'Direxion Daily Semiconductor Bear 3X',   p:'Direxion',    type:'bear',  lev:'-3x',  vol:18000000, desc:'Потроює падіння semiconductor sector. Активний при chip export bans, inventory gluts та cyclical downturns.'},
+
+  // ══ BIOTECH (XBI) ════════════════════════════════════
+  {idx:'xbi',ticker:'XBI',  name:'SPDR S&P Biotech ETF',                    p:'State Street',type:'std',   lev:'1x',   vol:6500000,  desc:'Equal-weighted biotech ETF (~200 компаній). Вища exposure до small/mid biotech ніж IBB. Сильно рухається на FDA news.'},
+  {idx:'xbi',ticker:'IBB',  name:'iShares Biotechnology ETF',               p:'BlackRock',   type:'std',   lev:'1x',   vol:2200000,  desc:'Cap-weighted biotech ETF. Більша вага мажорів (Amgen, Gilead, Regeneron). Стабільніший за XBI.'},
+
+  // ══ GOLD MINERS (GDX) ════════════════════════════════
+  {idx:'gdx',ticker:'GDX',  name:'VanEck Gold Miners ETF',                  p:'VanEck',      type:'std',   lev:'1x',   vol:18000000, desc:'Провідні золотодобувні компанії. Newmont ~15%, Barrick ~11%, Agnico Eagle ~11%. Рухається з ціною золота ~2x leverage.'},
+  {idx:'gdx',ticker:'GDXJ', name:'VanEck Junior Gold Miners ETF',           p:'VanEck',      type:'std',   lev:'1x',   vol:8500000,  desc:'Junior (малі та середні) золотодобувні компанії. Вища волатильність ніж GDX, більший upside при зростанні золота.'},
+  {idx:'gdx',ticker:'NUGT', name:'Direxion Daily Gold Miners Bull 2X',     p:'Direxion',    type:'bull',  lev:'2x',   vol:4200000,  desc:'Подвоює денний рух GDX. Для bull ставок на золото з додатковим плечем. Активний при dollar weakness та інфляційних страхах.'},
+  {idx:'gdx',ticker:'DUST', name:'Direxion Daily Gold Miners Bear 2X',     p:'Direxion',    type:'bear',  lev:'-2x',  vol:2800000,  desc:'Подвоює падіння GDX. Для ставок на strong USD та rising real rates що тиснуть на золото і майнерів.'},
+
+  // ══ FXI — CHINA LARGE-CAP ════════════════════════════
+  {idx:'fxi',ticker:'FXI',  name:'iShares China Large-Cap ETF',             p:'BlackRock',   type:'std',   lev:'1x',   vol:22000000, desc:'50 найбільших H-share компаній. Alibaba, Tencent, Meituan, Bank of China. Чутливий до регуляцій Пекіну та US-China tensions.'},
+  {idx:'fxi',ticker:'YINN', name:'Direxion Daily FTSE China Bull 3X Shares',p:'Direxion',    type:'bull',  lev:'3x',   vol:6500000,  desc:'Потроює денний рух FXI. Один з найволатильніших ETF ринку через непередбачувану китайську регуляторику.'},
+  {idx:'fxi',ticker:'YANG', name:'Direxion Daily FTSE China Bear 3X Shares',p:'Direxion',    type:'bear',  lev:'-3x',  vol:4800000,  desc:'Потроює падіння FXI. Активний під час Chinese regulatory crackdowns, Evergrande crisis та геополітичних загострень.'},
+
+  // ══ KWEB — CHINA INTERNET ════════════════════════════
+  {idx:'kweb',ticker:'KWEB',name:'KraneShares CSI China Internet ETF',      p:'KraneShares', type:'std',   lev:'1x',   vol:7200000,  desc:'Китайські інтернет-компанії. Alibaba, Tencent, Meituan, JD, Pinduoduo, Baidu. Вища концентрація tech ніж FXI.'},
+  {idx:'kweb',ticker:'CWEB',name:'Direxion Daily CSI China Internet Bull 2X',p:'Direxion',   type:'bull',  lev:'2x',   vol:2800000,  desc:'Подвоює денний рух KWEB. Для bull ставок на Chinese internet revival після regulatory crackdown 2021-2022.'},
+
+  // ══ EEM — EMERGING MARKETS ════════════════════════════
+  {idx:'eem',ticker:'EEM',  name:'iShares MSCI Emerging Markets ETF',       p:'BlackRock',   type:'std',   lev:'1x',   vol:38000000, desc:'Найбільший EM ETF ($25+ млрд AUM). Китай ~27%, Тайвань ~19%, Індія ~17%, ПКорея ~11%. Корелює з USD (USD up → EEM down).'},
+  {idx:'eem',ticker:'VWO',  name:'Vanguard FTSE Emerging Markets ETF',      p:'Vanguard',    type:'std',   lev:'1x',   vol:8500000,  desc:'Vanguard аналог EEM. Включає Південну Корею (EEM виключає). Ширший і дешевший. $85+ млрд AUM.'},
+  {idx:'eem',ticker:'EDC',  name:'Direxion Daily EM Bull 3X Shares',        p:'Direxion',    type:'bull',  lev:'3x',   vol:1800000,  desc:'Потроює денний рух EEM. Для агресивних bull ставок на emerging markets — особливо при weak USD та rate cuts.'},
+  {idx:'eem',ticker:'EDZ',  name:'Direxion Daily EM Bear 3X Shares',        p:'Direxion',    type:'bear',  lev:'-3x',  vol:1200000,  desc:'Потроює падіння EEM. Хедж або ведмежа ставка при strong USD, China slowdown або global risk-off.'},
+];
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let curIndex = null;
+let curFilter = 'all';
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+function init() {
+  document.getElementById('statI').textContent = INDICES.length;
+  document.getElementById('statE').textContent = ETFS.length;
+  buildIndexList();
+}
+
+// ══════════════════════════════════════════════════════
+// TAB SWITCH
+// ══════════════════════════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('.tnav').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-browse').classList.toggle('active', id === 'browse');
+  document.getElementById('tab-search').classList.toggle('active', id === 'search');
+}
+
+// ══════════════════════════════════════════════════════
+// TAB 1: BUILD INDEX LIST
+// ══════════════════════════════════════════════════════
+function buildIndexList() {
+  const groups = [
+    { id:'us_major', label:'Основні індекси' },
+    { id:'sector',   label:'Сектори S&P 500' },
+    { id:'thematic', label:'Тематичні' },
+    { id:'intl',     label:'Міжнародні' },
+  ];
+  let html = '';
+  groups.forEach(g => {
+    const items = INDICES.filter(i => i.group === g.id);
+    if(!items.length) return;
+    html += `<div class="idx-group"><div class="idx-group-lbl">${g.label}</div>`;
+    items.forEach(idx => {
+      const cnt = ETFS.filter(e => e.idx === idx.id).length;
+      html += `<div class="idx-item" id="idx-${idx.id}" onclick="selectIndex('${idx.id}')">
+        <div class="idx-ticker">${idx.ticker}</div>
+        <div class="idx-name">${idx.name}</div>
+        <div class="idx-cnt">${cnt}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('indexList').innerHTML =
+    `<div class="il-head">Виберіть індекс</div>` + html;
+}
+
+function selectIndex(id) {
+  curIndex = id;
+  curFilter = 'all';
+  document.querySelectorAll('.idx-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('idx-'+id).classList.add('active');
+  renderEtfPanel();
+}
+
+function renderEtfPanel() {
+  const idx = INDICES.find(i => i.id === curIndex);
+  if(!idx) return;
+  let etfs = ETFS.filter(e => e.idx === curIndex);
+  if(curFilter !== 'all') etfs = etfs.filter(e => e.type === curFilter);
+  etfs = etfs.slice().sort((a,b) => b.vol - a.vol);
+
+  const filterHtml = `<div class="filter-row">
+    <button class="fbtn fa${curFilter==='all'?' active':''}" onclick="setBF('all',this)">Всі</button>
+    <button class="fbtn fb${curFilter==='std'?' active':''}" onclick="setBF('std',this)">● Standard</button>
+    <button class="fbtn fb${curFilter==='bull'?' active':''}" onclick="setBF('bull',this)">▲ Bull</button>
+    <button class="fbtn fc${curFilter==='bear'?' active':''}" onclick="setBF('bear',this)">▼ Bear</button>
+    <button class="fbtn fd${curFilter==='cc'?' active':''}" onclick="setBF('cc',this)">◎ Covered Call</button>
+    <button class="fbtn fe${curFilter==='factor'?' active':''}" onclick="setBF('factor',this)">◆ Factor</button>
+  </div>`;
+
+  const cards = etfs.map(e => buildCard(e)).join('');
+
+  document.getElementById('etfPanel').innerHTML = `
+    <div class="ep-header">
+      <div>
+        <div class="ep-title">${idx.name}</div>
+        <div class="ep-desc">${idx.desc}</div>
+      </div>
+      <div class="ep-stats">${etfs.length} ETF</div>
+    </div>
+    ${filterHtml}
+    ${etfs.length ? `<div class="etf-grid">${cards}</div>` :
+      '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Немає ETF цього типу</div></div>'}`;
+}
+
+function setBF(type, btn) {
+  curFilter = type;
+  renderEtfPanel();
+}
+
+// ══════════════════════════════════════════════════════
+// TAB 2: SEARCH
+// ══════════════════════════════════════════════════════
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim().toUpperCase();
+  const res = document.getElementById('searchResults');
+  if(!q) {
+    res.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Введи тікер для пошуку</div><div class="empty-sub">Наприклад: SPY, QQQ, TQQQ, SOXL, IWM, DIA, FXI</div></div>';
+    return;
+  }
+
+  const direct = ETFS.find(e => e.ticker === q);
+  let html = '';
+
+  if(direct) {
+    const idx = INDICES.find(i => i.id === direct.idx);
+    const lbl = typeLabel(direct.type);
+    const sv = 'sv-' + direct.type;
+    html += `<div class="match-section">
+      <div class="match-head">Знайдено</div>
+      <div class="match-direct">
+        <div class="md-ticker">${direct.ticker}</div>
+        <div class="md-name">${direct.name}</div>
+        <div class="md-index">Індекс: ${idx ? idx.name : '—'} · ${lbl} · ${direct.lev}</div>
+        <div class="md-desc">${direct.desc}</div>
+        <div class="md-stats">
+          <div class="mds"><div class="mds-v ${sv}">${direct.lev}</div><div class="mds-l">Leverage</div></div>
+          <div class="mds"><div class="mds-v">${fmtV(direct.vol)}</div><div class="mds-l">Avg Vol/день</div></div>
+          <div class="mds"><div class="mds-v">${direct.p}</div><div class="mds-l">Провайдер</div></div>
+        </div>
+      </div>
+    </div>`;
+
+    // Related ETFs (same index)
+    const related = ETFS.filter(e => e.idx === direct.idx && e.ticker !== q).sort((a,b) => b.vol - a.vol);
+    if(related.length) {
+      html += `<div class="match-section">
+        <div class="match-head">Схожі ETF на той самий індекс (${idx ? idx.name : ''})</div>
+        <div class="etf-grid">${related.map(e => buildCard(e)).join('')}</div>
+      </div>`;
+    }
+  } else {
+    // Partial search — find tickers that contain the query
+    const partial = ETFS.filter(e => e.ticker.includes(q)).sort((a,b) => b.vol - a.vol);
+    if(partial.length) {
+      html += `<div class="match-section">
+        <div class="match-head">Схожі тікери</div>
+        <div class="etf-grid">${partial.map(e => buildCard(e, true)).join('')}</div>
+      </div>`;
+    } else {
+      html = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">ETF "${q}" не знайдено</div><div class="empty-sub">Спробуй: SPY QQQ TQQQ SQQQ IWM TNA DIA SPXL SOXL FXI YINN LABU</div></div>`;
+    }
+  }
+
+  res.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function typeLabel(t) {
+  return t==='std'?'● Standard':t==='bull'?'▲ Leveraged Bull':t==='bear'?'▼ Inverse Bear':t==='cc'?'◎ Covered Call':'◆ Factor';
+}
+
+function fmtV(v) {
+  return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v.toString();
+}
+
+function buildCard(e, showIndex = false) {
+  const tc = 'tc-'+e.type;
+  const sv = 'sv-'+e.type;
+  const tl = typeLabel(e.type);
+  const idx = INDICES.find(i => i.id === e.idx);
+  const idxBadge = showIndex && idx ? `<div class="related-idx">→ ${idx.ticker} · ${idx.name}</div>` : '';
+  return `<div class="etf-card">
+    <div class="ec-head">
+      <div class="ec-ticker ${tc}">${e.ticker}</div>
+      <div class="ec-name">${e.name}</div>
+      <div class="ec-type t-${e.type}">${tl}</div>
+    </div>
+    <div class="ec-body">
+      <div class="ec-desc">${e.desc}</div>
+      <div class="ec-stats">
+        <div class="ec-stat"><div class="ec-stat-val ${sv}">${e.lev}</div><div class="ec-stat-lbl">Leverage</div></div>
+        <div class="ec-stat"><div class="ec-stat-val">${fmtV(e.vol)}</div><div class="ec-stat-lbl">Avg Vol / день</div></div>
+      </div>
+      <div class="ec-provider">Провайдер: ${e.p}${idxBadge}</div>
+    </div>
+  </div>`;
+}
+
+init();
+</script>
+</body>
+</html>
