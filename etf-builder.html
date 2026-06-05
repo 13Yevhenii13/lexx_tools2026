@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF Builder — Командний кейс</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0d0d0d;--paper:#f5f0e8;--cream:#ede8db;
+  --gold:#c9a84c;--gold-light:#f7eed4;
+  --rust:#b84a2e;--rust-light:#fdf1ee;
+  --teal:#1a5c5a;--teal-light:#e4f0ef;
+  --muted:#8a8070;--border:#d4ccbb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:16px}
+#timerBar{position:fixed;top:0;left:0;right:0;height:5px;background:var(--cream);z-index:200}
+#timerFill{height:100%;background:var(--gold);width:100%;transition:width 1s linear,background .5s}
+header{display:flex;align-items:flex-end;gap:20px;padding:32px 40px 20px;border-bottom:2px solid var(--ink);position:sticky;top:0;background:var(--paper);z-index:100}
+.h-title{font-family:'Bebas Neue',sans-serif;font-size:50px;letter-spacing:2px;line-height:1}
+.h-sub{font-size:12px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px}
+.timer-wrap{margin-left:auto;text-align:right}
+.timer-num{font-family:'Bebas Neue',sans-serif;font-size:46px;line-height:1;transition:color .4s}
+.timer-num.urgent{color:var(--rust)}
+.timer-lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
+.step-nav{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;padding:0 40px;background:var(--paper)}
+.sn{padding:14px 18px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.sn.done{color:var(--teal);border-color:var(--teal)}
+.sn.active{color:var(--ink);border-color:var(--ink)}
+main{max-width:960px;margin:0 auto;padding:36px 40px}
+.screen{display:none;animation:fu .25s ease}
+.screen.active{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sc-title{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1px;margin-bottom:6px}
+.sc-hint{font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.field{margin-bottom:22px}
+.field label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:7px}
+input[type=text]{width:100%;background:white;border:1.5px solid var(--border);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--ink);outline:none;border-radius:2px;transition:border-color .15s}
+input[type=text]:focus{border-color:var(--ink)}
+.tiles{display:grid;gap:10px}
+.tiles-2{grid-template-columns:1fr 1fr}
+.tiles-3{grid-template-columns:1fr 1fr 1fr}
+.tile{border:1.5px solid var(--border);padding:14px 16px;cursor:pointer;background:white;border-radius:2px;position:relative;transition:all .15s}
+.tile:hover{border-color:var(--ink);background:var(--cream)}
+.tile.selected{border-color:var(--teal);background:var(--teal-light)}
+.tile.selected::after{content:'✓';position:absolute;top:10px;right:12px;font-size:13px;color:var(--teal);font-weight:700}
+.tile-name{font-weight:600;font-size:15px;margin-bottom:3px}
+.tile-desc{font-size:13px;color:var(--muted);line-height:1.4}
+.chip-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.chip{border:1.5px solid var(--border);padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;background:white;border-radius:100px;transition:all .15s;line-height:1.3}
+.chip:hover{border-color:var(--ink)}
+.chip.sel-teal{border-color:var(--teal);background:var(--teal-light);color:var(--teal)}
+.chip.sel-risk{border-color:var(--rust);background:var(--rust-light);color:var(--rust)}
+.chip-note{font-size:11px;color:var(--muted);margin-top:4px}
+.comp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:10px}
+.comp-card{border:1.5px solid var(--border);padding:10px 7px;cursor:pointer;background:white;border-radius:2px;text-align:center;transition:all .15s}
+.comp-card:hover{border-color:var(--ink);background:var(--cream)}
+.comp-card.selected{border-color:var(--gold);background:var(--gold-light)}
+.comp-ticker{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;margin-bottom:2px}
+.comp-name{font-size:10px;color:var(--muted);line-height:1.3;margin-bottom:3px}
+.comp-cap{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.comp-ret{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;margin-top:3px}
+.ret-pos{color:#1a7a3a}.ret-neg{color:var(--rust)}
+.sel-info{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:10px}
+.wt-note{font-size:12px;color:var(--muted);background:var(--cream);border:1px solid var(--border);padding:9px 14px;border-radius:2px;margin-bottom:14px;line-height:1.6}
+.wt-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.wt-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)}
+.wt-table td{padding:9px 12px;border-bottom:1px solid var(--cream);vertical-align:middle}
+.wt-ticker{font-family:'DM Mono',monospace;font-weight:500;font-size:13px}
+.wt-bar-w{width:100%;height:8px;background:var(--cream);border-radius:2px}
+.wt-bar{height:100%;background:var(--teal);border-radius:2px;transition:width .4s}
+.wt-pct{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--teal);white-space:nowrap}
+.wt-sum{font-family:'DM Mono',monospace;font-size:13px;display:inline-block;padding:7px 14px;border-radius:2px;margin-top:4px}
+.wt-sum.ok{background:var(--teal-light);color:var(--teal);border:1px solid var(--teal)}
+.nav-row{display:flex;gap:10px;margin-top:32px;padding-top:22px;border-top:1px solid var(--border)}
+.btn-next{flex:1;background:var(--ink);color:var(--paper);border:none;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;padding:13px 28px;cursor:pointer;border-radius:2px;transition:opacity .15s}
+.btn-next:hover{opacity:.85}
+.btn-back{background:transparent;color:var(--muted);border:1.5px solid var(--border);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:13px 20px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;border-radius:2px}
+.btn-back:hover{border-color:var(--ink);color:var(--ink)}
+/* RESULT */
+.etf-card{border:2px solid var(--ink);background:white;overflow:hidden;border-radius:2px}
+.etf-header{background:var(--ink);color:var(--paper);padding:28px 32px;display:flex;align-items:flex-start;gap:20px}
+.etf-big{font-family:'Bebas Neue',sans-serif;font-size:76px;line-height:1;color:var(--gold);letter-spacing:3px;flex-shrink:0}
+.etf-hr{padding-top:6px}
+.etf-fname{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;margin-bottom:10px}
+.etf-metas{display:flex;flex-wrap:wrap;gap:20px}
+.em{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#666}
+.em span{color:var(--gold-light);display:block;font-size:13px;margin-top:2px;font-family:'DM Mono',monospace}
+.etf-body{display:grid;grid-template-columns:1fr 1fr}
+.etf-sec{padding:22px 26px;border-bottom:1px solid var(--border)}
+.etf-sec:nth-child(odd){border-right:1px solid var(--border)}
+.etf-sec.full{grid-column:1/-1}
+.esl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px}
+.h-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.h-ticker{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;width:46px;flex-shrink:0}
+.h-name{font-size:10px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h-bw{flex:2;height:6px;background:var(--cream);border-radius:1px}
+.h-bar{height:100%;background:var(--teal);border-radius:1px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.h-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:38px;text-align:right}
+.ret-panel{background:var(--ink);padding:22px 26px}
+.ret-main{display:flex;align-items:flex-start;gap:20px;margin-bottom:14px}
+.ret-big{font-family:'Bebas Neue',sans-serif;font-size:68px;line-height:1;letter-spacing:2px}
+.ret-big.pos{color:#4cde80}.ret-big.neg{color:#ff6060}
+.ret-info{color:#888;font-size:12px;line-height:1.7;padding-top:6px}
+.ret-info strong{color:var(--paper);display:block;font-size:13px;margin-bottom:4px}
+.ret-bd{display:flex;flex-wrap:wrap;gap:5px}
+.rchip{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:2px;border:1px solid #333}
+.rchip.pos{color:#4cde80;border-color:#1a5c30}.rchip.neg{color:#ff8080;border-color:#5c1a1a}
+.risk-tags{display:flex;flex-wrap:wrap;gap:6px}
+.risk-tag{font-size:11px;font-weight:500;padding:4px 10px;background:var(--rust-light);border:1px solid #f0c0b0;color:var(--rust);border-radius:2px}
+.etf-footer{padding:16px 26px;border-top:2px solid var(--ink);background:var(--cream);display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.fi{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+.fi span{font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);display:block;margin-top:2px;font-weight:500}
+.btn-restart{margin-left:auto;background:transparent;border:1.5px solid var(--ink);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:8px 18px;cursor:pointer;border-radius:2px;transition:all .15s}
+.btn-restart:hover{background:var(--ink);color:var(--paper)}
+@media(max-width:650px){
+  header{padding:16px 20px;flex-wrap:wrap}
+  main{padding:20px}
+  .comp-grid{grid-template-columns:repeat(3,1fr)}
+  .etf-body{grid-template-columns:1fr}
+  .etf-sec:nth-child(odd){border-right:none}
+  .tiles-3{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="timerBar"><div id="timerFill"></div></div>
+
+<header>
+  <div>
+    <div class="h-sub">КОМАНДНИЙ КЕЙС · ФОНДОВІ РИНКИ</div>
+    <div class="h-title">BUILD YOUR ETF</div>
+  </div>
+  <div class="timer-wrap">
+    <div class="timer-num" id="tNum">15:00</div>
+    <div class="timer-lbl">Залишилось</div>
+  </div>
+</header>
+
+<nav class="step-nav">
+  <div class="sn active" id="tab0">01 · Назва</div>
+  <div class="sn" id="tab1">02 · Сектор</div>
+  <div class="sn" id="tab2">03 · Компанії</div>
+  <div class="sn" id="tab3">04 · Ваги</div>
+  <div class="sn" id="tab4">05 · Ризики</div>
+  <div class="sn" id="tab5">06 · ETF</div>
+</nav>
+
+<main>
+
+<!-- 0 -->
+<div class="screen active" id="s0">
+  <div class="sc-title">Назвіть свій ETF</div>
+  <div class="sc-hint">Придумайте тикер, повну назву фонду, оберіть біржу та методологію зважування.</div>
+  <div style="display:grid;grid-template-columns:140px 1fr;gap:14px">
+    <div class="field">
+      <label>Тикер ETF</label>
+      <input type="text" id="iTickr" placeholder="GRNE" maxlength="5" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div class="field">
+      <label>Повна назва</label>
+      <input type="text" id="iName" placeholder="Global Green Energy ETF">
+    </div>
+  </div>
+  <div class="field">
+    <label>Біржа</label>
+    <div class="tiles tiles-2">
+      <div class="tile" onclick="selTile(this,'exchange','NYSE')">
+        <div class="tile-name">NYSE</div>
+        <div class="tile-desc">Нью-Йоркська фондова біржа · найбільша у світі за капіталізацією · фізичний торговий зал · традиційні, промислові та фінансові компанії</div>
+      </div>
+      <div class="tile" onclick="selTile(this,'exchange','NASDAQ')">
+        <div class="tile-name">NASDAQ</div>
+        <div class="tile-desc">Повністю електронна біржа · ECN-торгівля · домінують tech, AI та біотех-компанії · менші спреди, вищий оборот</div>
+      </div>
+    </div>
+  </div>
+  <div class="field">
+    <label>Методологія зважування</label>
+    <div class="tiles tiles-2">
+      <div class="tile" onclick="selTile(this,'method','cap')">
+        <div class="tile-name">Капіталізаційно-зважений</div>
+        <div class="tile-desc">Як S&amp;P 500 — ваги розраховуються автоматично пропорційно ринковій капіталізації кожної компанії</div>
+      </div>
+      <div class="tile" onclick="selTile(this,'method','price')">
+        <div class="tile-name">Ціново-зважений</div>
+        <div class="tile-desc">Як DOW Jones — ваги розраховуються автоматично пропорційно ціні акції. Дорожча акція = більший вплив</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-next" onclick="goNext(0)">Далі →</button>
+  </div>
+</div>
+
+<!-- 1 -->
+<div class="screen" id="s1">
+  <div class="sc-title">Тема фонду</div>
+  <div class="sc-hint">Оберіть сектор, потім відмітьте інвестиційні тези — чому саме цей сектор цікавий зараз.</div>
+  <div class="field">
+    <label>Сектор</label>
+    <div class="tiles tiles-3">
+      <div class="tile" onclick="selSector(this,'tech','💻 Технології')"><div class="tile-name">💻 Технології</div><div class="tile-desc">ПЗ, напівпровідники, хмара, AI-платформи</div></div>
+      <div class="tile" onclick="selSector(this,'ai','🤖 Штучний інтелект')"><div class="tile-name">🤖 Штучний інтелект</div><div class="tile-desc">GPU, LLM, автоматизація, дата-центри</div></div>
+      <div class="tile" onclick="selSector(this,'green','🌿 Зелена енергетика')"><div class="tile-name">🌿 Зелена енергетика</div><div class="tile-desc">Відновлювана енергія, EV, clean tech</div></div>
+      <div class="tile" onclick="selSector(this,'health','🏥 Охорона здоров\'я')"><div class="tile-name">🏥 Охорона здоров'я</div><div class="tile-desc">Фарма, біотех, медобладнання, AI у медицині</div></div>
+      <div class="tile" onclick="selSector(this,'finance','🏦 Фінанси')"><div class="tile-name">🏦 Фінанси</div><div class="tile-desc">Банки, страхування, fintech, платіжні системи</div></div>
+      <div class="tile" onclick="selSector(this,'consumer','🛍 Споживчий')"><div class="tile-name">🛍 Споживчий</div><div class="tile-desc">Роздріб, e-commerce, FMCG, бренди</div></div>
+      <div class="tile" onclick="selSector(this,'defense','🛡 Оборонна промисловість')"><div class="tile-name">🛡 Оборона & Аерокосмос</div><div class="tile-desc">Зброя, авіація, кібербезпека, супутники</div></div>
+      <div class="tile" onclick="selSector(this,'energy','⛽ Нафта та газ')"><div class="tile-name">⛽ Нафта та газ</div><div class="tile-desc">Видобуток, переробка, трубопроводи, LNG</div></div>
+      <div class="tile" onclick="selSector(this,'realestate','🏢 Нерухомість (REITs)')"><div class="tile-name">🏢 Нерухомість</div><div class="tile-desc">REITs — комерційна, житлова, промислова нерухомість</div></div>
+    </div>
+  </div>
+  <div class="field" id="thFld" style="display:none">
+    <label>Інвестиційна теза — оберіть одну або кілька</label>
+    <div class="chip-wrap" id="thChips"></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-back" onclick="goBack(1)">← Назад</button>
+    <button class="btn-next" onclick="goNext(1)">Далі →</button>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="screen" id="s2">
+  <div class="sc-title">Оберіть компанії</div>
+  <div class="sc-hint">Мінімум 3, максимум 10 компаній.</div>
+  <div class="sel-info" id="selInfo">Обрано: 0 з мін. 3</div>
+  <div class="comp-grid" id="compGrid"></div>
+  <div class="nav-row">
+    <button class="btn-back" onclick="goBack(2)">← Назад</button>
+    <button class="btn-next" onclick="goNext(2)">Далі →</button>
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="screen" id="s3">
+  <div class="sc-title">Розподіл ваг</div>
+  <div class="sc-hint" id="wHint"></div>
+  <div class="wt-note" id="wNote"></div>
+  <div id="wContent"></div>
+  <div class="nav-row">
+    <button class="btn-back" onclick="goBack(3)">← Назад</button>
+    <button class="btn-next" onclick="goNext(3)">Далі →</button>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="screen" id="s4">
+  <div class="sc-title">Ризик-фактори</div>
+  <div class="sc-hint">Оберіть мінімум 4 фактори, які можуть негативно вплинути на ваш ETF.</div>
+  <div class="chip-wrap" id="riskChips"></div>
+  <div class="nav-row">
+    <button class="btn-back" onclick="goBack(4)">← Назад</button>
+    <button class="btn-next" onclick="goNext(4)">Згенерувати ETF →</button>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="screen" id="s5">
+  <div class="sc-title" style="margin-bottom:22px">Ваш ETF</div>
+  <div class="etf-card">
+    <div class="etf-header">
+      <div class="etf-big" id="rTick">—</div>
+      <div class="etf-hr">
+        <div class="etf-fname" id="rFname">—</div>
+        <div class="etf-metas">
+          <div class="em">Біржа<span id="rExch">—</span></div>
+          <div class="em">Тип<span id="rMeth">—</span></div>
+          <div class="em">Сектор<span id="rSect">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="etf-body">
+      <div class="etf-sec">
+        <div class="esl">Компанії та ваги</div>
+        <div id="rHoldings"></div>
+      </div>
+      <div class="etf-sec" style="background:var(--ink);padding:0;border:none">
+        <div class="ret-panel" id="retPanel">
+          <div class="esl" style="color:#555;margin-bottom:10px">Дохідність ETF за 12 місяців</div>
+          <div class="ret-main">
+            <div class="ret-big" id="retBig">—</div>
+            <div class="ret-info" id="retInfo">—</div>
+          </div>
+          <div class="ret-bd" id="retBd"></div>
+        </div>
+      </div>
+      <div class="etf-sec full">
+        <div class="esl">Інвестиційна теза</div>
+        <div id="rThesis" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div class="etf-sec full">
+        <div class="esl">Ризик-фактори</div>
+        <div class="risk-tags" id="rRisks"></div>
+      </div>
+    </div>
+    <div class="etf-footer">
+      <div class="fi">Компанії<span id="rCount">—</span></div>
+      <div class="fi">Методологія<span id="rMethF">—</span></div>
+      <div class="fi">Топ позиція<span id="rTop">—</span></div>
+      <button class="btn-restart" onclick="restart()">↺ Новий ETF</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<script>
+// ══════════ DATA ══════════
+// ret1y = approximate 1-year return % as of early 2026
+// cap = market cap $B, price = ~stock price $
+const DB = {
+  tech:[
+    {t:'AAPL', n:'Apple',             cap:3450,price:228, ret1y:17},
+    {t:'MSFT', n:'Microsoft',         cap:3150,price:420, ret1y:9},
+    {t:'GOOGL',n:'Alphabet',          cap:2200,price:192, ret1y:38},
+    {t:'META', n:'Meta Platforms',    cap:1480,price:596, ret1y:68},
+    {t:'AMZN', n:'Amazon',            cap:2100,price:220, ret1y:44},
+    {t:'ORCL', n:'Oracle',            cap:490, price:175, ret1y:55},
+    {t:'ADBE', n:'Adobe',             cap:195, price:440, ret1y:-14},
+    {t:'CRM',  n:'Salesforce',        cap:290, price:305, ret1y:19},
+    {t:'INTC', n:'Intel',             cap:105, price:25,  ret1y:-52},
+    {t:'IBM',  n:'IBM',               cap:215, price:235, ret1y:41},
+    {t:'CSCO', n:'Cisco',             cap:230, price:58,  ret1y:16},
+    {t:'NOW',  n:'ServiceNow',        cap:220, price:1080,ret1y:33},
+  ],
+  ai:[
+    {t:'NVDA', n:'NVIDIA',            cap:3400,price:138, ret1y:136},
+    {t:'MSFT', n:'Microsoft',         cap:3150,price:420, ret1y:9},
+    {t:'GOOGL',n:'Alphabet',          cap:2200,price:192, ret1y:38},
+    {t:'META', n:'Meta Platforms',    cap:1480,price:596, ret1y:68},
+    {t:'AMD',  n:'AMD',               cap:245, price:150, ret1y:-12},
+    {t:'PLTR', n:'Palantir',          cap:185, price:78,  ret1y:340},
+    {t:'ARM',  n:'Arm Holdings',      cap:155, price:148, ret1y:88},
+    {t:'SMCI', n:'Super Micro',       cap:25,  price:43,  ret1y:-65},
+    {t:'IONQ', n:'IonQ',              cap:8,   price:36,  ret1y:155},
+    {t:'SOUN', n:'SoundHound AI',     cap:6,   price:14,  ret1y:560},
+    {t:'AI',   n:'C3.ai',             cap:4,   price:35,  ret1y:42},
+    {t:'MSTR', n:'MicroStrategy',     cap:90,  price:365, ret1y:370},
+  ],
+  green:[
+    {t:'NEE',  n:'NextEra Energy',    cap:142, price:70,  ret1y:-7},
+    {t:'TSLA', n:'Tesla',             cap:1250,price:400, ret1y:58},
+    {t:'ENPH', n:'Enphase Energy',    cap:14,  price:105, ret1y:-44},
+    {t:'FSLR', n:'First Solar',       cap:18,  price:170, ret1y:-22},
+    {t:'BEP',  n:'Brookfield Renew.', cap:18,  price:24,  ret1y:-12},
+    {t:'RUN',  n:'Sunrun',            cap:3,   price:14,  ret1y:-28},
+    {t:'PLUG', n:'Plug Power',        cap:2,   price:3,   ret1y:-62},
+    {t:'SEDG', n:'SolarEdge',         cap:2,   price:19,  ret1y:-74},
+    {t:'RIVN', n:'Rivian',            cap:16,  price:16,  ret1y:-34},
+    {t:'NIO',  n:'NIO Inc.',          cap:9,   price:5,   ret1y:-39},
+    {t:'BLNK', n:'Blink Charging',    cap:0.5, price:3,   ret1y:-55},
+    {t:'BE',   n:'Bloom Energy',      cap:3,   price:11,  ret1y:-14},
+  ],
+  health:[
+    {t:'JNJ',  n:'Johnson & Johnson',  cap:380, price:158, ret1y:0},
+    {t:'UNH',  n:'UnitedHealth',      cap:490, price:525, ret1y:3},
+    {t:'LLY',  n:'Eli Lilly',         cap:720, price:780, ret1y:12},
+    {t:'ABBV', n:'AbbVie',            cap:320, price:180, ret1y:12},
+    {t:'MRK',  n:'Merck',             cap:265, price:104, ret1y:-28},
+    {t:'PFE',  n:'Pfizer',            cap:155, price:27,  ret1y:-16},
+    {t:'MRNA', n:'Moderna',           cap:14,  price:38,  ret1y:-50},
+    {t:'ISRG', n:'Intuitive Surgical',cap:160, price:530, ret1y:22},
+    {t:'TMO',  n:'Thermo Fisher',     cap:200, price:520, ret1y:-9},
+    {t:'AMGN', n:'Amgen',             cap:172, price:310, ret1y:3},
+    {t:'GILD', n:'Gilead',            cap:115, price:92,  ret1y:30},
+    {t:'DXCM', n:'Dexcom',            cap:32,  price:85,  ret1y:-23},
+  ],
+  finance:[
+    {t:'JPM',  n:'JPMorgan Chase',    cap:720, price:245, ret1y:45},
+    {t:'BAC',  n:'Bank of America',   cap:360, price:46,  ret1y:30},
+    {t:'GS',   n:'Goldman Sachs',     cap:200, price:570, ret1y:56},
+    {t:'MS',   n:'Morgan Stanley',    cap:210, price:130, ret1y:38},
+    {t:'WFC',  n:'Wells Fargo',       cap:240, price:72,  ret1y:49},
+    {t:'V',    n:'Visa',              cap:570, price:315, ret1y:15},
+    {t:'MA',   n:'Mastercard',        cap:480, price:525, ret1y:15},
+    {t:'AXP',  n:'American Express',   cap:215, price:295, ret1y:29},
+    {t:'BRK.B',n:'Berkshire Hathaway', cap:960, price:468, ret1y:25},
+    {t:'SCHW', n:'Charles Schwab',     cap:160, price:81,  ret1y:22},
+    {t:'BX',   n:'Blackstone',        cap:200, price:165, ret1y:20},
+    {t:'SQ',   n:'Block (Square)',      cap:50,  price:82,  ret1y:40},
+  ],
+  consumer:[
+    {t:'AMZN', n:'Amazon',            cap:2100,price:220, ret1y:44},
+    {t:'WMT',  n:'Walmart',           cap:750, price:92,  ret1y:73},
+    {t:'COST', n:'Costco',            cap:420, price:950, ret1y:28},
+    {t:'MCD',  n:"McDonald's",        cap:225, price:313, ret1y:7},
+    {t:'KO',   n:'Coca-Cola',         cap:268, price:62,  ret1y:14},
+    {t:'PEP',  n:'PepsiCo',           cap:205, price:149, ret1y:-14},
+    {t:'NKE',  n:'Nike',              cap:115, price:78,  ret1y:-26},
+    {t:'SBUX', n:'Starbucks',         cap:105, price:92,  ret1y:-3},
+    {t:'TGT',  n:'Target',            cap:68,  price:145, ret1y:-32},
+    {t:'HD',   n:'Home Depot',        cap:350, price:360, ret1y:9},
+    {t:'LULU', n:'Lululemon',         cap:46,  price:380, ret1y:-35},
+    {t:'UBER', n:'Uber',              cap:170, price:82,  ret1y:36},
+  ],
+  defense:[
+    {t:'LMT',  n:'Lockheed Martin',   cap:115, price:470, ret1y:16},
+    {t:'RTX',  n:'RTX Corp.',         cap:160, price:127, ret1y:26},
+    {t:'NOC',  n:'Northrop Grumman',  cap:72,  price:490, ret1y:14},
+    {t:'GD',   n:'General Dynamics',  cap:80,  price:290, ret1y:18},
+    {t:'BA',   n:'Boeing',            cap:105, price:168, ret1y:5},
+    {t:'LHX',  n:'L3Harris Tech.',    cap:45,  price:240, ret1y:20},
+    {t:'HII',  n:'Huntington Ingalls',cap:10,  price:270, ret1y:8},
+    {t:'LDOS', n:'Leidos Holdings',   cap:25,  price:180, ret1y:32},
+    {t:'CACI', n:'CACI Intl.',        cap:10,  price:490, ret1y:29},
+    {t:'CRWD', n:'CrowdStrike',       cap:90,  price:370, ret1y:42},
+    {t:'PANW', n:'Palo Alto Networks',cap:115, price:185, ret1y:22},
+    {t:'AXON', n:'Axon Enterprise',   cap:35,  price:590, ret1y:88},
+  ],
+  energy:[
+    {t:'XOM',  n:'ExxonMobil',        cap:480, price:112, ret1y:7},
+    {t:'CVX',  n:'Chevron',           cap:270, price:153, ret1y:-3},
+    {t:'COP',  n:'ConocoPhillips',    cap:130, price:108, ret1y:2},
+    {t:'EOG',  n:'EOG Resources',     cap:75,  price:129, ret1y:5},
+    {t:'SLB',  n:'Schlumberger',      cap:65,  price:46,  ret1y:-12},
+    {t:'PSX',  n:'Phillips 66',       cap:52,  price:130, ret1y:-5},
+    {t:'VLO',  n:'Valero Energy',     cap:45,  price:135, ret1y:-8},
+    {t:'MPC',  n:'Marathon Petroleum',cap:58,  price:165, ret1y:12},
+    {t:'OXY',  n:'Occidental Petrol.',cap:48,  price:52,  ret1y:-14},
+    {t:'HAL',  n:'Halliburton',       cap:28,  price:32,  ret1y:-18},
+    {t:'KMI',  n:'Kinder Morgan',     cap:28,  price:27,  ret1y:36},
+    {t:'WMB',  n:'Williams Cos.',     cap:60,  price:55,  ret1y:55},
+  ],
+  realestate:[
+    {t:'PLD',  n:'Prologis',          cap:100, price:115, ret1y:-12},
+    {t:'AMT',  n:'American Tower',    cap:90,  price:196, ret1y:4},
+    {t:'EQIX', n:'Equinix',           cap:82,  price:875, ret1y:8},
+    {t:'CCI',  n:'Crown Castle',      cap:43,  price:100, ret1y:-11},
+    {t:'SPG',  n:'Simon Property',    cap:62,  price:168, ret1y:18},
+    {t:'O',    n:'Realty Income',     cap:46,  price:54,  ret1y:3},
+    {t:'DLR',  n:'Digital Realty',    cap:55,  price:175, ret1y:24},
+    {t:'WELL', n:'Welltower',         cap:80,  price:135, ret1y:32},
+    {t:'AVB',  n:'AvalonBay',         cap:30,  price:220, ret1y:15},
+    {t:'EQR',  n:'Equity Residential',cap:26,  price:72,  ret1y:14},
+    {t:'VICI', n:'VICI Properties',   cap:33,  price:31,  ret1y:4},
+    {t:'WY',   n:'Weyerhaeuser',      cap:17,  price:24,  ret1y:-9},
+  ]
+};
+
+const THESES = {
+  tech:    ['Домінування у хмарних сервісах','Зростання ринку SaaS','Консолідація IT-сектору','Великі екосистеми важко замінити'],
+  ai:      ['Бум AI-інфраструктури','Зростання попиту на GPU','Монетизація LLM-продуктів','AI замінює ручну працю'],
+  green:   ['Зелений перехід (energy transition)','Державні субсидії на EV та сонячну енергію','Зниження собівартості renewables','ESG-інвестиції ростуть'],
+  health:  ['Старіння населення → зростання попиту','Революція GLP-1 (Ozempic/Wegovy)','AI у діагностиці та drug discovery','Стійкий попит незалежно від циклу'],
+  finance: ['Цикл ставок вигідний банкам','Зростання M&A активності','Бум приватного капіталу','Сильний американський споживач'],
+  consumer:['Стійкість споживача навіть під час рецесії','Зростання e-commerce','Сила бренду = ціновий захист','Відновлення роздрібних продажів'],
+  defense: ['Зростання оборонних бюджетів у НАТО','Геополітична напруженість → попит на зброю','Кібербезпека як критична інфраструктура','Довгострокові держконтракти = стабільний дохід'],
+  energy:  ['Попит на нафту залишається стійким','LNG — стратегічний ресурс для Європи','Дефіцит інвестицій у нові родовища','Висока дивідендна дохідність сектору'],
+  realestate:['Дата-центри — найбільш зростаючий REIT','Зниження ставок Fed = позитив для REITs','Дефіцит житла у великих містах США','Промислова нерухомість росте завдяки e-commerce'],
+};
+
+const RISKS = [
+  '📅 Рішення FOMC (зміна ставки)','📊 Звіт NFP (ринок праці)','📈 Дані CPI/PPI (інфляція)',
+  '⚡ Quadruple Witching','🔄 Triple Witching','📉 Квартальні звіти (earnings miss)',
+  '🌍 Геополітичні конфлікти','⚖️ Антимонопольні розслідування','📜 Нові регуляції сектору',
+  '💼 Зміна CEO / топ-менеджменту','💸 Зростання процентних ставок','💵 Зміцнення USD',
+  '📉 Рецесія в США','🏦 Криза ліквідності','🌪 Природні катастрофи',
+  '🤝 Конкуренти / дизраптори','📋 Вихід з індексу S&P 500','📡 Кібератаки',
+];
+
+// ══════════ STATE ══════════
+const S={ticker:'',name:'',team:'',exchange:'',method:'',sector:'',sectorLabel:'',theses:[],companies:[],weights:{},risks:[]};
+
+// ══════════ TIMER ══════════
+let sec=900;
+const tFill=document.getElementById('timerFill'),tNum=document.getElementById('tNum');
+let tmr=setInterval(()=>{
+  sec=Math.max(0,sec-1);
+  tNum.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+  tFill.style.width=(sec/900*100)+'%';
+  if(sec<120){tFill.style.background='var(--rust)';tNum.classList.add('urgent');}
+  else if(sec<300) tFill.style.background='#c9a84c';
+  if(!sec) clearInterval(tmr);
+},1000);
+
+// ══════════ HELPERS ══════════
+function selTile(el,key,val){
+  el.closest('.tiles').querySelectorAll('.tile').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected'); S[key]=val;
+}
+
+function selSector(el,key,label){
+  document.querySelectorAll('#s1 .tile').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected'); S.sector=key; S.sectorLabel=label; S.theses=[];
+  document.getElementById('thFld').style.display='block';
+  document.getElementById('thChips').innerHTML=THESES[key].map(t=>
+    `<div class="chip" onclick="togTh(this,'${t.replace(/'/g,"&#39;")}')">${t}</div>`).join('');
+  S.companies=[];
+}
+
+function togTh(el,val){
+  const i=S.theses.indexOf(val);
+  if(i>=0){S.theses.splice(i,1);el.classList.remove('sel-teal');}
+  else{S.theses.push(val);el.classList.add('sel-teal');}
+}
+
+function togRisk(el,val){
+  const i=S.risks.indexOf(val);
+  if(i>=0){S.risks.splice(i,1);el.classList.remove('sel-risk');}
+  else{S.risks.push(val);el.classList.add('sel-risk');}
+}
+
+// ══════════ COMPANY GRID ══════════
+function buildCompGrid(){
+  const comps=DB[S.sector]||[];
+  document.getElementById('compGrid').innerHTML=comps.map(c=>{
+    const capStr=c.cap>=1000?'$'+(c.cap/1000).toFixed(1)+'T':'$'+c.cap+'B';
+    return `<div class="comp-card" onclick="togComp(this,'${c.t}')">
+      <div class="comp-ticker">${c.t}</div>
+      <div class="comp-name">${c.n}</div>
+      <div class="comp-cap"><span style="color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:1px">Кап </span>${capStr}</div>
+      <div class="comp-cap"><span style="color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:1px">Ціна </span>$${c.price}</div>
+    </div>`;
+  }).join('');
+}
+
+function togComp(el,ticker){
+  const c=DB[S.sector].find(x=>x.t===ticker);
+  const idx=S.companies.findIndex(x=>x.t===ticker);
+  if(idx>=0){S.companies.splice(idx,1);el.classList.remove('selected');}
+  else{
+    if(S.companies.length>=10){alert('Максимум 10 компаній');return;}
+    S.companies.push(c);el.classList.add('selected');
+  }
+  document.getElementById('selInfo').textContent=`Обрано: ${S.companies.length} з мін. 3`;
+}
+
+// ══════════ WEIGHTS ══════════
+function buildWeights(){
+  const isCap=S.method==='cap';
+  document.getElementById('wHint').textContent=isCap
+    ?'Капіталізаційно-зважений метод — ваги розраховані автоматично на основі ринкової капіталізації.'
+    :'Ціново-зважений метод — ваги розраховані автоматично на основі ціни акції.';
+  document.getElementById('wNote').textContent=isCap
+    ?'Формула: Вага компанії = Кап. компанії ÷ Сума капіталізацій × 100%'
+    :'Формула: Вага компанії = Ціна акції ÷ Сума цін всіх акцій × 100%';
+
+  const total=S.companies.reduce((a,c)=>a+(isCap?c.cap:c.price),0);
+  S.weights={};
+  // Calculate raw weights
+  let rawWeights={};
+  S.companies.forEach(c=>{
+    rawWeights[c.t]=(isCap?c.cap:c.price)/total*100;
+  });
+  // Round to 1 decimal
+  S.companies.forEach(c=>{ S.weights[c.t]=Math.round(rawWeights[c.t]*10)/10; });
+  // Fix rounding to ensure sum=100
+  let sum=Object.values(S.weights).reduce((a,b)=>a+b,0);
+  let diff=Math.round((100-sum)*10)/10;
+  if(diff!==0){
+    const largest=S.companies.reduce((a,b)=>S.weights[a.t]>S.weights[b.t]?a:b);
+    S.weights[largest.t]=Math.round((S.weights[largest.t]+diff)*10)/10;
+  }
+
+  const sorted=[...S.companies].sort((a,b)=>S.weights[b.t]-S.weights[a.t]);
+  document.getElementById('wContent').innerHTML=`
+    <table class="wt-table">
+      <thead><tr>
+        <th>Тикер</th><th>Компанія</th>
+        <th>${isCap?'Капіталізація':'Ціна акції'}</th>
+        <th style="min-width:180px">Вага</th><th>%</th>
+      </tr></thead>
+      <tbody>${sorted.map(c=>`<tr>
+        <td class="wt-ticker">${c.t}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.n}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${isCap?'$'+c.cap+'B':'$'+c.price}</td>
+        <td><div class="wt-bar-w"><div class="wt-bar" style="width:${S.weights[c.t]}%"></div></div></td>
+        <td class="wt-pct">${S.weights[c.t]}%</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div class="wt-sum ok">Сума: 100.0% ✓</div>
+  `;
+}
+
+// ══════════ RISKS ══════════
+function buildRiskChips(){
+  S.risks=[];
+  document.getElementById('riskChips').innerHTML=RISKS.map(r=>
+    `<div class="chip" onclick="togRisk(this,'${r}')">${r}</div>`).join('');
+}
+
+// ══════════ RETURN CALC ══════════
+function calcReturn(){
+  return parseFloat(S.companies.reduce((acc,c)=>{
+    return acc + (S.weights[c.t]||0)/100*c.ret1y;
+  },0).toFixed(1));
+}
+
+// ══════════ RESULT ══════════
+function buildResult(){
+  document.getElementById('rTick').textContent=S.ticker||'—';
+  document.getElementById('rFname').textContent=S.name||'—';
+  document.getElementById('rExch').textContent=S.exchange||'—';
+  document.getElementById('rSect').textContent=S.sectorLabel||'—';
+  document.getElementById('rMeth').textContent=S.method==='cap'?'Кап.-зважений':'Ціново-зважений';
+  document.getElementById('rMethF').textContent=S.method==='cap'?'Капіталізаційно-зважений (як S&P 500)':'Ціново-зважений (як DOW Jones)';
+  document.getElementById('rCount').textContent=S.companies.length+' компаній';
+
+  const sorted=[...S.companies].sort((a,b)=>(S.weights[b.t]||0)-(S.weights[a.t]||0));
+  document.getElementById('rHoldings').innerHTML=sorted.map(c=>`
+    <div class="h-row">
+      <div class="h-ticker">${c.t}</div>
+      <div class="h-name">${c.n}</div>
+      <div class="h-bw"><div class="h-bar" style="width:${S.weights[c.t]||0}%"></div></div>
+      <div class="h-pct">${S.weights[c.t]||0}%</div>
+    </div>`).join('');
+
+  document.getElementById('rTop').textContent=`${sorted[0].t} (${S.weights[sorted[0].t]}%)`;
+
+  document.getElementById('rThesis').innerHTML=
+    (S.theses.length?S.theses:[S.sectorLabel]).map(t=>
+      `<div class="chip sel-teal" style="cursor:default">${t}</div>`).join('');
+
+  document.getElementById('rRisks').innerHTML=S.risks.map(r=>
+    `<div class="risk-tag">${r}</div>`).join('');
+
+  // Return
+  const ret=calcReturn();
+  const isPos=ret>=0;
+  const sign=isPos?'+':'';
+  document.getElementById('retBig').textContent=sign+ret+'%';
+  document.getElementById('retBig').className='ret-big '+(isPos?'pos':'neg');
+
+  const sp500=14;
+  const diff=parseFloat((ret-sp500).toFixed(1));
+  const vs=diff>=0?`▲ +${diff}% відносно S&P 500 (+${sp500}%)`:`▼ ${diff}% відносно S&P 500 (+${sp500}%)`;
+  document.getElementById('retInfo').innerHTML=`<strong>Зважена дохідність за 12 міс.</strong>Дані: поч. 2026 р.<br>${vs}`;
+
+  const bdSorted=[...S.companies].sort((a,b)=>{
+    const ca=(S.weights[b.t]||0)/100*b.ret1y;
+    const cb=(S.weights[a.t]||0)/100*a.ret1y;
+    return ca-cb;
+  });
+  document.getElementById('retBd').innerHTML=bdSorted.map(c=>{
+    const contrib=parseFloat(((S.weights[c.t]||0)/100*c.ret1y).toFixed(1));
+    const s=contrib>=0?'+':'';
+    return `<div class="rchip ${contrib>=0?'pos':'neg'}">${c.t}: ${s}${contrib}%</div>`;
+  }).join('');
+}
+
+// ══════════ NAV ══════════
+function validate(n){
+  if(n===0){
+    if(!document.getElementById('iTickr').value.trim()) return alert('Введіть тикер'),false;
+    if(!document.getElementById('iName').value.trim()) return alert('Введіть назву'),false;
+    if(!S.exchange) return alert('Оберіть біржу'),false;
+    if(!S.method) return alert('Оберіть методологію'),false;
+  }
+  if(n===1&&!S.sector) return alert('Оберіть сектор'),false;
+  if(n===2&&S.companies.length<3) return alert('Мінімум 3 компанії'),false;
+  if(n===4&&S.risks.length<4) return alert('Оберіть мінімум 4 ризики'),false;
+  return true;
+}
+function collect(n){
+  if(n===0){
+    S.ticker=document.getElementById('iTickr').value.toUpperCase().trim();
+    S.name=document.getElementById('iName').value.trim();
+  }
+}
+function goNext(n){
+  if(!validate(n)) return;
+  collect(n);
+  const to=n+1;
+  if(to===2) buildCompGrid();
+  if(to===3) buildWeights();
+  if(to===4) buildRiskChips();
+  if(to===5) buildResult();
+  goStep(to);
+}
+function goBack(n){ goStep(n-1); }
+function goStep(n){
+  document.querySelectorAll('.screen').forEach((s,i)=>s.classList.toggle('active',i===n));
+  for(let i=0;i<6;i++){
+    const t=document.getElementById('tab'+i);
+    t.classList.remove('active','done');
+    if(i<n) t.classList.add('done');
+    if(i===n) t.classList.add('active');
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function restart(){
+  Object.assign(S,{ticker:'',name:'',exchange:'',method:'',sector:'',sectorLabel:'',theses:[],companies:[],weights:{},risks:[]});
+  ['iTickr','iName'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('.tile.selected,.chip.sel-teal').forEach(t=>t.classList.remove('selected','sel-teal'));
+  document.getElementById('thFld').style.display='none';
+  sec=900; tNum.classList.remove('urgent');
+  tFill.style.background='var(--gold)'; tFill.style.width='100%';
+  clearInterval(tmr);
+  tmr=setInterval(()=>{
+    sec=Math.max(0,sec-1);
+    tNum.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+    tFill.style.width=(sec/900*100)+'%';
+    if(sec<120){tFill.style.background='var(--rust)';tNum.classList.add('urgent');}
+    if(!sec) clearInterval(tmr);
+  },1000);
+  goStep(0);
+}
+</script>
+</body>
+</html>
