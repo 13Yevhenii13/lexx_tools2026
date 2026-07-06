@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEXX International — Симулятор котировки</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F6F8; --card:#FFFFFF; --ink:#1A2332; --muted:#5B6676; --line:#E3E7ED;
+  --accent:#17497A; --accent-soft:#EAF1F8;
+  --buy:#0E7C4A; --buy-soft:#E8F5EE;
+  --sell:#B93A2E; --sell-soft:#FBECEA;
+  --flash:#FFF3C4; --gold:#8A6D1A;
+  --mono:'IBM Plex Mono',Consolas,Menlo,monospace;
+  --sans:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px}
+button{font-family:var(--sans);cursor:pointer}
+input,select{font-family:var(--mono)}
+
+/* ===== HEADER ===== */
+header{background:var(--ink);color:#fff;padding:14px 20px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+header .brand{font-weight:700;letter-spacing:.14em;font-size:15px;text-transform:uppercase}
+header .brand span{color:#7FB2E5}
+header .title{font-size:14px;color:#B9C4D2}
+
+nav{background:var(--card);border-bottom:1px solid var(--line);display:flex;overflow-x:auto;position:sticky;top:0;z-index:50}
+nav button{background:none;border:none;padding:13px 18px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+nav button.active{color:var(--accent);border-bottom-color:var(--accent)}
+nav button:hover{color:var(--ink)}
+
+main{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+.mode{display:none}
+.mode.active{display:block}
+
+h2{font-size:20px;margin-bottom:6px}
+.sub{color:var(--muted);margin-bottom:18px;max-width:70ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+.card h3{font-size:15px;margin-bottom:10px}
+
+/* ===== QUOTE TABLE ===== */
+.qwrap{overflow-x:auto}
+table.quote{border-collapse:collapse;font-family:var(--mono);font-size:15px;min-width:640px;width:100%}
+table.quote th{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:6px 10px;text-align:center;border-bottom:2px solid var(--ink)}
+table.quote td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line)}
+table.quote tr.qrow td{font-weight:700;font-size:16px;background:#FBFCFE}
+table.quote tr.qrow td.c-bid,table.quote td.c-bid{color:var(--buy)}
+table.quote tr.qrow td.c-ask,table.quote td.c-ask{color:var(--sell)}
+table.quote tr.ob td{color:var(--muted);font-size:14px}
+table.quote tr.ob td.c-bid{color:#3E8E68}
+table.quote tr.ob td.c-ask{color:#C4685F}
+td.sep{color:var(--muted)!important;font-weight:400!important}
+td.flash{animation:flash 1.2s ease-out}
+@keyframes flash{0%{background:var(--flash)}100%{background:transparent}}
+.ob-label{font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:6px 10px}
+
+/* ===== ANATOMY ===== */
+.anat-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}
+@media(max-width:800px){.anat-grid{grid-template-columns:1fr}}
+.anat-quote td.clickable{cursor:pointer;transition:background .15s}
+.anat-quote td.clickable:hover{background:var(--accent-soft)}
+.anat-quote td.selected{background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:-2px}
+.explain{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;position:sticky;top:60px;align-self:start}
+.explain .tag{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:4px;margin-bottom:8px}
+.explain h4{font-size:16px;margin-bottom:6px}
+.explain p{font-size:14px;color:#333;margin-bottom:8px}
+.explain .meta{background:#FDF8EC;border-left:3px solid var(--gold);padding:8px 10px;font-size:13px;color:#4a3d12;border-radius:0 6px 6px 0}
+.hint{font-size:13px;color:var(--muted)}
+
+/* ===== SANDBOX ===== */
+.sb-grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+@media(max-width:860px){.sb-grid{grid-template-columns:1fr}}
+.orderform{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.field select,.field input{padding:8px 10px;border:1px solid #C9D1DB;border-radius:6px;font-size:14px;width:110px;background:#fff}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.btn{padding:9px 18px;border:none;border-radius:6px;font-weight:600;font-size:14px}
+.btn-buy{background:var(--buy);color:#fff}
+.btn-sell{background:var(--sell);color:#fff}
+.btn-neutral{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;border:1px solid #C9D1DB;color:var(--ink)}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.side-toggle{display:flex;border:1px solid #C9D1DB;border-radius:6px;overflow:hidden}
+.side-toggle button{border:none;background:#fff;padding:8px 16px;font-weight:600;font-size:14px;color:var(--muted)}
+.side-toggle button.on-buy{background:var(--buy);color:#fff}
+.side-toggle button.on-sell{background:var(--sell);color:#fff}
+
+.log{font-size:13.5px;max-height:420px;overflow-y:auto}
+.log .entry{padding:9px 12px;border-radius:8px;margin-bottom:8px;border:1px solid var(--line);background:#FBFCFD}
+.log .entry.order{border-left:4px solid var(--accent)}
+.log .entry.trade{border-left:4px solid var(--gold);background:#FFFDF4}
+.log .entry.book{border-left:4px solid #9AA6B4}
+.log .entry.stop{border-left:4px solid #7A3AB9;background:#F9F4FE}
+.log .entry b{font-family:var(--mono);font-weight:600}
+.log .t{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.stops-list{font-family:var(--mono);font-size:13.5px}
+.stops-list .srow{display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--line)}
+.stops-list .srow:last-child{border-bottom:none}
+.empty{color:var(--muted);font-size:13px;font-style:italic;padding:6px 0}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.warn{background:var(--sell-soft);border:1px solid #E5B7B2;color:#7c2b22;padding:8px 12px;border-radius:6px;font-size:13px;margin-top:10px;display:none}
+
+/* ===== PRACTICE ===== */
+.prog{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.prog .dot{width:26px;height:26px;border-radius:50%;border:2px solid #C9D1DB;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);background:#fff}
+.prog .dot.cur{border-color:var(--accent);color:var(--accent)}
+.prog .dot.ok{background:var(--buy-soft);border-color:var(--buy);color:var(--buy)}
+.prog .dot.bad{background:var(--sell-soft);border-color:var(--sell);color:var(--sell)}
+.taskcat{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:20px;background:var(--accent-soft);color:var(--accent);margin-bottom:10px}
+.order-sent{font-family:var(--mono);font-weight:700;font-size:16px;padding:10px 14px;border-radius:8px;display:inline-block;margin:10px 0}
+.order-sent.buy{background:var(--buy-soft);color:var(--buy)}
+.order-sent.sell{background:var(--sell-soft);color:var(--sell)}
+.ansgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:12px 0;max-width:760px}
+.ansgrid .field input{width:100%;text-align:center;font-weight:600}
+.ansgrid input.ok{border-color:var(--buy);background:var(--buy-soft)}
+.ansgrid input.bad{border-color:var(--sell);background:var(--sell-soft)}
+.correct-val{font-family:var(--mono);font-size:12px;color:var(--buy);font-weight:600;text-align:center;min-height:16px}
+.mc .opt{display:block;width:100%;text-align:left;padding:11px 14px;margin-bottom:8px;border:1px solid #C9D1DB;border-radius:8px;background:#fff;font-size:14px}
+.mc .opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.mc .opt.sel-ok{border-color:var(--buy);background:var(--buy-soft)}
+.mc .opt.sel-bad{border-color:var(--sell);background:var(--sell-soft)}
+.mc .opt.reveal-ok{border-color:var(--buy);background:var(--buy-soft)}
+.mc .opt:disabled{cursor:default}
+.expl{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:14px;margin-top:12px;display:none}
+.expl.show{display:block}
+.expl b{font-family:var(--mono)}
+.verdict{font-weight:700;font-size:15px;margin-top:12px;display:none}
+.verdict.ok{color:var(--buy);display:block}
+.verdict.bad{color:var(--sell);display:block}
+.pr-nav{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.score-line{font-size:14px;color:var(--muted);margin-top:6px}
+
+/* ===== WALKTHROUGH ===== */
+.prints-strip{font-family:var(--mono);font-size:13px;color:var(--gold);margin-top:10px;min-height:18px}
+.prints-strip b{background:#FDF4D7;padding:2px 8px;border-radius:4px;margin-right:6px;display:inline-block;margin-bottom:4px}
+.step-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:6px}
+.step-event{font-size:15px;margin-bottom:12px}
+.step-event b{font-family:var(--mono)}
+.step-note{border-left:4px solid #9AA6B4;background:#F7F9FB;padding:10px 12px;border-radius:0 8px 8px 0;font-size:13.5px;margin-top:12px}
+.step-note b{font-family:var(--mono)}
+.wt-final{border-left:4px solid var(--buy);background:var(--buy-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:14px}
+.wt-score{font-size:13px;color:var(--muted);margin-top:10px}
+.stops-list .srow.gone{opacity:.35;text-decoration:line-through}
+.stops-list .srow.pending{opacity:.5;font-style:italic}
+
+/* ===== REFERENCE ===== */
+details{border:1px solid var(--line);border-radius:8px;background:var(--card);margin-bottom:10px}
+summary{padding:13px 16px;font-weight:600;cursor:pointer;font-size:14.5px}
+summary::marker{color:var(--accent)}
+details .body{padding:0 16px 14px;font-size:14px;color:#2a3442}
+details .body ul{margin:6px 0 6px 20px}
+details .body li{margin-bottom:5px}
+details .body code{font-family:var(--mono);background:#F0F2F5;padding:1px 5px;border-radius:4px;font-size:13px}
+.rule{background:#FDF8EC;border-left:3px solid var(--gold);padding:8px 12px;border-radius:0 6px 6px 0;margin:8px 0;font-size:13.5px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">LEXX <span>International</span></div>
+  <div class="title">Симулятор котировки — навчальний тренажер</div>
+</header>
+
+<nav>
+  <button class="active" onclick="setMode('anatomy',this)">1 · Анатомія котировки</button>
+  <button onclick="setMode('sandbox',this)">2 · Пісочниця</button>
+  <button onclick="setMode('walkthrough',this)">3 · Комплексний розбір</button>
+  <button onclick="setMode('noprint',this)">4 · Тригер без прінта</button>
+  <button onclick="setMode('practice',this)">5 · Практика</button>
+  <button onclick="setMode('reference',this)">6 · Довідник</button>
+</nav>
+
+<main>
+
+<!-- ==================== ANATOMY ==================== -->
+<section id="anatomy" class="mode active">
+  <h2>З чого складається котировка</h2>
+  <p class="sub">Натисніть на будь-яке поле котировки нижче — праворуч з'явиться пояснення. Перший рядок — котировка, все нижче — ордери в OpenBook.</p>
+  <div class="anat-grid">
+    <div class="card">
+      <div class="qwrap">
+      <table class="quote anat-quote">
+        <thead><tr>
+          <th>Ticker</th><th>LTP</th><th>LTS</th><th>Bid</th><th></th><th>Ask</th><th>Bid size</th><th></th><th>Ask size</th><th>Volume</th>
+        </tr></thead>
+        <tbody>
+          <tr class="qrow">
+            <td class="clickable" data-f="ticker">BAC</td>
+            <td class="clickable" data-f="ltp">27.80</td>
+            <td class="clickable" data-f="lts">5</td>
+            <td class="clickable c-bid" data-f="bid">27.80</td>
+            <td class="sep">*</td>
+            <td class="clickable c-ask" data-f="ask">27.81</td>
+            <td class="clickable c-bid" data-f="bidsize">16</td>
+            <td class="sep">*</td>
+            <td class="clickable c-ask" data-f="asksize">23</td>
+            <td class="clickable" data-f="volume">45300</td>
+          </tr>
+          <tr class="ob clickable-row" data-f="openbook"><td></td><td></td><td></td><td class="c-bid clickable" data-f="openbook">27.79</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">27.82</td><td class="c-bid clickable" data-f="openbook">12</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">8</td><td></td></tr>
+          <tr class="ob"><td></td><td></td><td></td><td class="c-bid clickable" data-f="openbook">27.73</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">27.83</td><td class="c-bid clickable" data-f="openbook">27</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">18</td><td></td></tr>
+          <tr class="ob"><td></td><td></td><td></td><td class="c-bid clickable" data-f="openbook">27.70</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">27.85</td><td class="c-bid clickable" data-f="openbook">2</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">9</td><td></td></tr>
+          <tr class="ob"><td></td><td></td><td></td><td class="c-bid clickable" data-f="openbook">27.65</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">27.87</td><td class="c-bid clickable" data-f="openbook">34</td><td class="sep"></td><td class="c-ask clickable" data-f="openbook">4</td><td></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="hint" style="margin-top:10px">↑ Перший рядок — котировка (Level 1). Рядки нижче — OpenBook (Level 2): лімітні ордери, що поступаються за ціною найкращим Bid і Ask.</p>
+    </div>
+    <div class="explain" id="explainBox">
+      <div class="tag">Почніть тут</div>
+      <h4>Оберіть поле</h4>
+      <p>Клікніть на будь-яке значення в таблиці ліворуч, щоб побачити, що воно означає і навіщо потрібне трейдеру.</p>
+      <div class="meta">Метафора всієї котировки: базар. Покупці вигукують ціни, за які готові купити (Bid), продавці виставили цінники (Ask). Угода відбувається, коли хтось погоджується на чужу ціну.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SANDBOX ==================== -->
+<section id="sandbox" class="mode">
+  <h2>Пісочниця: відправляйте ордери — дивіться, як реагує котировка</h2>
+  <p class="sub">Тут працює справжній механізм зведення ордерів за правилами курсу. Кожен крок виконання пояснюється в журналі праворуч. Розмір вказується в лотах (1 лот = 100 акцій).</p>
+
+  <div class="sb-grid">
+    <div>
+      <div class="card">
+        <h3 id="sbTitle">Котировка + OpenBook</h3>
+        <div class="qwrap"><div id="sbQuote"></div></div>
+        <div class="presets">
+          <button class="btn btn-ghost" onclick="loadPreset('abc')">Сценарій ABC (з курсу)</button>
+          <button class="btn btn-ghost" onclick="loadPreset('jpm')">Сценарій JPM (стопи)</button>
+          <button class="btn btn-ghost" onclick="loadPreset('random')">Випадкова акція</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Новий ордер</h3>
+        <div class="orderform">
+          <div class="field">
+            <label>Напрям</label>
+            <div class="side-toggle">
+              <button id="btnSideBuy" class="on-buy" onclick="setSide('buy')">Buy</button>
+              <button id="btnSideSell" onclick="setSide('sell')">Sell</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Тип</label>
+            <select id="ordType" onchange="typeChanged()">
+              <option value="limit">Limit</option>
+              <option value="market">Market</option>
+              <option value="stop">Stop</option>
+            </select>
+          </div>
+          <div class="field" id="priceField">
+            <label id="priceLabel">Ціна</label>
+            <input type="number" id="ordPrice" step="0.01" min="0.01" placeholder="25.41">
+          </div>
+          <div class="field">
+            <label>Лотів</label>
+            <input type="number" id="ordSize" step="1" min="1" value="1">
+          </div>
+          <button class="btn btn-buy" id="btnSend" onclick="sendUserOrder()">Відправити Buy</button>
+        </div>
+        <div class="warn" id="sbWarn"></div>
+      </div>
+
+      <div class="card">
+        <h3>Активні stop-ордери <span class="hint">(тригер прінтом — LTP, або без прінта — Bid/Ask)</span></h3>
+        <div class="stops-list" id="stopsList"><div class="empty">Немає активних стопів</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>Журнал виконання</h3>
+        <div class="log" id="sbLog"><div class="empty">Відправте перший ордер — тут з'явиться покрокове пояснення.</div></div>
+        <div class="presets">
+          <button class="btn btn-ghost" onclick="clearLog()">Очистити журнал</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== WALKTHROUGH ==================== -->
+<section id="walkthrough" class="mode">
+  <h2>Комплексний розбір: стопи + ліміти + маркети в одному сценарії</h2>
+  <p class="sub">Повне вирішення котировки, як у прикладах курсу: на біржі висять кілька stop-ордерів, приходять limit- і market-ордери — крок за кроком виконуємо все за правилами. На ключових розвилках вам ставиться питання; кожен крок пояснюється, змінені клітинки підсвічуються.</p>
+
+  <div class="presets" style="margin-bottom:14px">
+    <button class="btn btn-neutral" id="wtBtnA" onclick="loadWT(0)">Сценарій KO: повний цикл</button>
+    <button class="btn btn-ghost" id="wtBtnB" onclick="loadWT(1)">Сценарій C: пріоритет за ціною</button>
+    <button class="btn btn-ghost" id="wtBtnC" onclick="loadWT(2)">Сценарій C: пріоритет за часом</button>
+  </div>
+
+  <div class="sb-grid">
+    <div>
+      <div class="card">
+        <h3>Стан котировки</h3>
+        <div class="qwrap" id="wtQuote"></div>
+        <div id="wtPrints" class="prints-strip"></div>
+      </div>
+      <div class="card">
+        <h3>Stop-ордери на біржі <span class="hint">(у порядку відправлення)</span></h3>
+        <div class="stops-list" id="wtStops"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" id="wtCard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== NO-PRINT TRIGGER WALKTHROUGH ==================== -->
+<section id="noprint" class="mode">
+  <h2>Тригер без прінта: розбір реального прикладу з курсу</h2>
+  <p class="sub">Два сценарії з робочих таблиць курсу: ордери приходять по черзі — ліміти, маркети і стопи. Тут працюють обидва механізми тригера: <b>прінтом</b> (LTP досягає рівня) і <b>без прінта</b> (Bid ≥ ціни stop buy / Ask ≤ ціни stop sell).</p>
+
+  <div class="presets" style="margin-bottom:14px">
+    <button class="btn btn-neutral" id="npBtnA" onclick="NP.load(0)">Сценарій 1 · PFE (стоп-селли)</button>
+    <button class="btn btn-ghost" id="npBtnB" onclick="NP.load(1)">Сценарій 2 · PFE (стоп-баї)</button>
+  </div>
+
+  <div class="sb-grid">
+    <div>
+      <div class="card">
+        <h3>Стан котировки</h3>
+        <div class="qwrap" id="np_Quote"></div>
+        <div id="np_Prints" class="prints-strip"></div>
+      </div>
+      <div class="card">
+        <h3>Stop-ордери <span class="hint">(№ = порядок відправлення на біржу)</span></h3>
+        <div class="stops-list" id="np_Stops"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" id="np_Card"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PRACTICE ==================== -->
+<section id="practice" class="mode">
+  <h2>Практика: як зміниться котировка?</h2>
+  <p class="sub">Задачі з матеріалу курсу. Вам дається котировка й ордер — введіть, як виглядатиме котировка після виконання. Кожне поле перевіряється окремо.</p>
+  <div class="prog" id="prProg"></div>
+  <div class="card" id="prCard"></div>
+  <div class="score-line" id="prScore"></div>
+</section>
+
+<!-- ==================== REFERENCE ==================== -->
+<section id="reference" class="mode">
+  <h2>Довідник</h2>
+  <p class="sub">Стислий конспект теми. Розгорніть потрібний розділ.</p>
+
+  <details open>
+    <summary>Структура котировки</summary>
+    <div class="body">
+      <ul>
+        <li><code>Ticker</code> — абревіатура акції (BAC, AAPL).</li>
+        <li><code>LTP</code> — Last Trade Price, ціна останньої угоди («прінт»).</li>
+        <li><code>LTS</code> — Last Trade Size, обсяг останньої угоди в лотах.</li>
+        <li><code>Bid</code> — найкраща (найвища) ціна на купівлю. <code>Bid size</code> — її обсяг у лотах.</li>
+        <li><code>Ask</code> — найкраща (найнижча) ціна на продаж. <code>Ask size</code> — її обсяг у лотах.</li>
+        <li><code>Volume</code> — сумарний обсяг усіх угод за сесію, в акціях.</li>
+        <li><code>Спред</code> — різниця між Ask і Bid.</li>
+      </ul>
+      <div class="rule">Bid не може бути вищим за Ask — інакше відбулася б негайна угода. Перший рядок — котировка, все нижче — OpenBook.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Limit order — 4 варіанти розвитку подій</summary>
+    <div class="body">
+      <p>Купити/продати за вказаною ціною <b>або краще</b>. Buy limit не виконається вище вашої ціни, sell limit — нижче.</p>
+      <ul>
+        <li>Виконується повністю.</li>
+        <li>Виконується частково — залишок стає на котировку.</li>
+        <li>Не виконується і стає на котировку (якщо ціна краща за поточну).</li>
+        <li>Не виконується і йде в OpenBook (якщо ціна гірша за поточну).</li>
+      </ul>
+      <div class="rule">Перевага: ціна не гірша за вашу. Недолік: у швидкому русі можете не встигнути.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Market order</summary>
+    <div class="body">
+      <p>Купити/продати за будь-якою ціною, що є на ринку зараз. Ви вказуєте лише кількість. Виконується завжди.</p>
+      <div class="rule">У ліквідних («товстих») акціях (BAC, KO, XOM) ризик поганої ціни малий. У волатильних (TSLA, NVDA) — market може виконатися помітно гірше за очікування через широкий спред і швидкий рух.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Stop order і trigger</summary>
+    <div class="body">
+      <p>Сплячий market order. Базовий тригер — <b>LTP</b>: прінт досягає ціни стопа. Додатково діє тригер <b>без прінта</b> — від Bid/Ask (окремий розділ нижче). Після тригера стоп перетворюється на market і виконується.</p>
+      <ul>
+        <li>Stop buy X → тригер прінтом: прінт X <b>або вище</b>; без прінта: Bid ≥ X.</li>
+        <li>Stop sell Y → тригер прінтом: прінт Y <b>або нижче</b>; без прінта: Ask ≤ Y.</li>
+        <li>Long-позиція страхується через stop sell; short — через stop buy.</li>
+        <li>Працює лише під час сесії 9:30–16:00 ET. На premarket/aftermarket стопи не працюють.</li>
+      </ul>
+      <div class="rule">Ордер, що прийшов на біржу, спершу виконується повністю, і лише потім перевіряються тригери стопів.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Черговість стопів: ціна → час</summary>
+    <div class="body">
+      <ul>
+        <li><b>Пріоритет за ціною:</b> перевіряємо кожен прінт по черзі — чий тригер спрацював від ранішого прінта, той виконується першим.</li>
+        <li><b>Пріоритет за часом:</b> якщо один прінт тригерить два і більше стопів одночасно — першим виконується той, що був відправлений на біржу раніше.</li>
+      </ul>
+      <div class="rule">Спочатку ціна, потім час. Виконання кожного стопа саме генерує прінти — вони можуть тригерити наступні стопи.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Тригерування стопа: прінтом і без прінта</summary>
+    <div class="body">
+      <p><b>1. Тригер прінтом (базове правило).</b> Тригером є Last Trade Price — ціна реально здійсненої угоди:</p>
+      <ul>
+        <li>Stop buy X → тригер: прінт X або вище (точний збіг не потрібен — прінт 61.27 тригерить стоп 61.26).</li>
+        <li>Stop sell Y → тригер: прінт Y або нижче.</li>
+        <li>Прінти від виконання самих стопів — теж прінти: вони тригерять наступні стопи (<b>ланцюгове тригерування</b>).</li>
+        <li>Враховуються лише прінти, що відбулися <b>після</b> відправлення стопа. Минулий LTP новий стоп не тригерить.</li>
+      </ul>
+      <p><b>2. Тригер без прінта (додаткове правило).</b> Стоп може спрацювати без жодної угоди — виключно від зміни Bid або Ask у котировці:</p>
+      <ul>
+        <li><b>Stop buy X</b> тригерується без прінта, якщо <b>Bid ≥ X</b>. Логіка: покупці вже стоять на рівні стопа або вище — ринок дійшов до ціни навіть без угоди.</li>
+        <li><b>Stop sell Y</b> тригерується без прінта, якщо <b>Ask ≤ Y</b>. Логіка: продавці опустилися до рівня стопа або нижче.</li>
+      </ul>
+      <p>Приклад: котировка AAPL 45.30 2 | 45.20 * 45.50 | 82000, є Stop buy 45.40. Без жодної угоди Bid змінюється на 45.42. Bid 45.42 ≥ 45.40 → тригер, стоп перетворюється на Buy market і виконується.</p>
+      <p><b>Коли це трапляється на практиці:</b></p>
+      <ul>
+        <li><b>Малоліквідні акції</b> — Bid і Ask стрибають на значні відстані без угод, лише від появи чи зникнення лімітних ордерів у котировці.</li>
+        <li><b>Технічна помилка трейдера</b> — типова ситуація з junior-трейдерами: відправлений Stop buy із ціною, що вже нижча за поточний Bid, або Stop sell із ціною, що вже вища за поточний Ask, тригерується миттєво в момент відправлення і виконується за ринком — часто за неочікуваною ціною.</li>
+      </ul>
+      <div class="rule">Зведена таблиця тригерів:<br>
+      Stop buy X — прінтом: LTP ≥ X · без прінта: Bid ≥ X<br>
+      Stop sell Y — прінтом: LTP ≤ Y · без прінта: Ask ≤ Y</div>
+      <div class="rule">Порядок роботи: вхідний ордер виконується повністю → перевіряємо прінти по черзі (пріоритет ціна → час) → перевіряємо тригер без прінта за поточними Bid/Ask → виконані стопи генерують нові прінти й змінюють котировку — перевіряємо знову.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Типові помилки новачків</summary>
+    <div class="body">
+      <ul>
+        <li>Плутати лоти й акції: розміри Bid/Ask/LTS — у лотах, Volume — в акціях (1 лот = 100 акцій).</li>
+        <li>Думати, що «покупці/продавці закінчилися». На біржі вони є завжди, за будь-якої ціни.</li>
+        <li>Забувати, що частково виконаний buy limit залишком стає новим Bid за ціною ордера.</li>
+        <li>Плутати два механізми тригера: прінтом (LTP досягає рівня стопа) і без прінта (Bid ≥ ціни stop buy / Ask ≤ ціни stop sell). Минулі прінти, що відбулися до відправлення стопа, тригером не є.</li>
+        <li>Відправляти stop buy нижче поточного Bid або stop sell вище поточного Ask — такий стоп тригерується без прінта миттєво і виконується за ринком.</li>
+        <li>Виконувати стоп до завершення ордера, який його тригернув.</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+</main>
+<footer>LEXX International · Навчальний матеріал курсу «Американські фондові ринки» · Симулятор працює автономно, без інтернету</footer>
+
+<script>
+// ==================== NAV ====================
+function setMode(id, btn){
+  document.querySelectorAll('.mode').forEach(m=>m.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window.scrollTo({top:0});
+}
+
+// ==================== ANATOMY ====================
+const FIELDS = {
+  ticker:{tag:'Ticker',title:'Тікер',body:'Абревіатура акції на біржі. BAC — Bank of America. За тікером ви знаходите акцію в торговому терміналі.',meta:'Це як номерний знак автомобіля: коротко і однозначно ідентифікує компанію.'},
+  ltp:{tag:'LTP — Last Trade Price',title:'Ціна останньої угоди («прінт»)',body:'Ціна, за якою щойно відбулася остання угода. LTP — базовий тригер для stop-ордерів (додатково стоп може тригеруватися без прінта — від Bid/Ask, див. Довідник).',meta:'Це цінник із чека останнього покупця в магазині — за скільки реально купили щойно, а не за скільки просять.'},
+  lts:{tag:'LTS — Last Trade Size',title:'Обсяг останньої угоди',body:'Скільки лотів пройшло в останній угоді. 1 лот = 100 акцій. LTS 5 означає: щойно перейшло з рук в руки 500 акцій.',meta:'Не тільки «за скільки купили», а й «скільки штук». Великий LTS = великий гравець щойно діяв.'},
+  bid:{tag:'Bid',title:'Найкраща ціна на купівлю',body:'Найвища ціна серед усіх, хто зараз хоче купити. Це ціна, за якою ВИ можете миттєво продати.',meta:'На базарі це найщедріший покупець у натовпі: «Купую за 27.80!» Хочете продати негайно — продаєте йому.'},
+  ask:{tag:'Ask',title:'Найкраща ціна на продаж',body:'Найнижча ціна серед усіх, хто зараз хоче продати. Це ціна, за якою ВИ можете миттєво купити. Різниця Ask − Bid = спред.',meta:'Найдешевший цінник серед усіх продавців на базарі. Хочете купити негайно — берете в нього.'},
+  bidsize:{tag:'Bid size',title:'Обсяг найкращого Bid',body:'Скільки лотів готові купити за ціною Bid. 16 = попит на 1600 акцій за 27.80.',meta:'Скільки товару покупець готовий забрати за своєю ціною. Продасте більше — решта піде дешевшим покупцям з OpenBook.'},
+  asksize:{tag:'Ask size',title:'Обсяг найкращого Ask',body:'Скільки лотів виставлено на продаж за ціною Ask. 23 = пропозиція 2300 акцій за 27.81.',meta:'Скільки товару лежить на прилавку за найкращою ціною. Купите більше — доведеться брати дорожче, з OpenBook.'},
+  volume:{tag:'Volume',title:'Обсяг за сесію',body:'Сумарна кількість АКЦІЙ (не лотів!) у всіх угодах з початку торгової сесії. Кожна угода додає сюди свій обсяг.',meta:'Лічильник на касі магазину: скільки всього одиниць товару продано за день. Показує активність в акції.'},
+  openbook:{tag:'OpenBook (Level 2)',title:'Черга лімітних ордерів',body:'Усі лімітні ордери, що поступаються за ціною найкращим Bid і Ask. Вони чекають своєї черги: коли найкращий рівень вичерпається, наступний з OpenBook стане на котировку.',meta:'Черга за прилавком: перший ряд — котировка, всі позаду — OpenBook. Пішов перший — його місце займає наступний.'}
+};
+document.querySelectorAll('.anat-quote .clickable').forEach(td=>{
+  td.addEventListener('click',()=>{
+    document.querySelectorAll('.anat-quote .selected').forEach(x=>x.classList.remove('selected'));
+    const f = td.dataset.f;
+    if(f==='openbook'){document.querySelectorAll('[data-f="openbook"]').forEach(x=>x.classList.add('selected'));}
+    else td.classList.add('selected');
+    const d = FIELDS[f];
+    document.getElementById('explainBox').innerHTML =
+      '<div class="tag">'+d.tag+'</div><h4>'+d.title+'</h4><p>'+d.body+'</p><div class="meta">'+d.meta+'</div>';
+  });
+});
+
+// ==================== SANDBOX ENGINE ====================
+// book sides: bids desc, asks asc. sizes in lots. volume in shares.
+let S = null;          // state
+let side = 'buy';
+let prevSnapshot = null;
+
+function fmt(p){return p.toFixed(2);}
+function lots(n){return n + (n===1?' лот':(n>=2&&n<=4?' лоти':' лотів'));}
+
+function loadPreset(name){
+  if(name==='abc'){
+    S = {ticker:'ABC', ltp:25.40, lts:2, volume:22300,
+      bids:[{p:25.39,s:2},{p:25.36,s:5},{p:25.33,s:12},{p:25.30,s:8},{p:25.25,s:20}],
+      asks:[{p:25.41,s:4},{p:25.42,s:3},{p:25.45,s:7},{p:25.48,s:10},{p:25.52,s:15}],
+      stops:[], stopSeq:0};
+  } else if(name==='jpm'){
+    S = {ticker:'JPM', ltp:99.27, lts:4, volume:19900,
+      bids:[{p:99.25,s:5},{p:99.23,s:3},{p:99.20,s:3},{p:99.18,s:2},{p:99.10,s:10}],
+      asks:[{p:99.30,s:2},{p:99.33,s:1},{p:99.38,s:3},{p:99.40,s:5},{p:99.45,s:8}],
+      stops:[], stopSeq:0};
+    addLog('book','Порада: поставте <b>Stop buy 99.34 × 1</b>, потім відправте <b>Buy market 4</b> — і подивіться, як спрацює тригер (приклад із курсу).');
+  } else {
+    const base = +( (5 + Math.random()*195).toFixed(2) );
+    const tick = base > 100 ? 0.05 : 0.01;
+    const mk = (start,dir,n)=>{let a=[];let p=start;for(let i=0;i<n;i++){a.push({p:+p.toFixed(2),s:1+Math.floor(Math.random()*25)});p+=dir*tick*(1+Math.floor(Math.random()*4));}return a;};
+    const bid=+(base-tick).toFixed(2), ask=+(base).toFixed(2);
+    S = {ticker:['KO','XOM','NIO','F','T','PFE'][Math.floor(Math.random()*6)], ltp:bid, lts:1+Math.floor(Math.random()*9),
+      volume:10000+Math.floor(Math.random()*90000)*1,
+      bids:mk(bid,-1,5), asks:mk(ask,1,5), stops:[], stopSeq:0};
+  }
+  prevSnapshot = null;
+  renderQuote();
+  renderStops();
+  addLog('book','Завантажено сценарій <b>'+S.ticker+'</b>. Котировка готова до роботи.');
+}
+
+function snapshot(){
+  return {ltp:S.ltp,lts:S.lts,vol:S.volume,
+    bid:S.bids[0]?S.bids[0].p:null,bs:S.bids[0]?S.bids[0].s:null,
+    ask:S.asks[0]?S.asks[0].p:null,as:S.asks[0]?S.asks[0].s:null};
+}
+
+function replenish(){
+  // exchange always has buyers and sellers (course rule) — refill deep levels
+  const tick = S.ltp > 100 ? 0.05 : 0.01;
+  while(S.bids.length<5){
+    const last = S.bids.length? S.bids[S.bids.length-1].p : +(S.ltp - tick).toFixed(2);
+    S.bids.push({p:+(last - tick*(1+Math.floor(Math.random()*4))).toFixed(2), s:1+Math.floor(Math.random()*25)});
+  }
+  while(S.asks.length<5){
+    const last = S.asks.length? S.asks[S.asks.length-1].p : +(S.ltp + tick).toFixed(2);
+    S.asks.push({p:+(last + tick*(1+Math.floor(Math.random()*4))).toFixed(2), s:1+Math.floor(Math.random()*25)});
+  }
+}
+
+function insertLevel(arr, p, s, desc){
+  for(let i=0;i<arr.length;i++){
+    if(Math.abs(arr[i].p-p)<1e-9){arr[i].s+=s;return;}
+    if(desc? p>arr[i].p : p<arr[i].p){arr.splice(i,0,{p,s});return;}
+  }
+  arr.push({p,s});
+}
+
+// execute aggression against a book side; returns prints [{p,lots}]
+function cross(bookSide, size, limitPrice, isBuy){
+  const prints=[];
+  while(size>0 && bookSide.length){
+    const lvl = bookSide[0];
+    if(limitPrice!==null){
+      if(isBuy && lvl.p > limitPrice+1e-9) break;
+      if(!isBuy && lvl.p < limitPrice-1e-9) break;
+    }
+    const fill = Math.min(size, lvl.s);
+    lvl.s -= fill; size -= fill;
+    if(prints.length && Math.abs(prints[prints.length-1].p-lvl.p)<1e-9) prints[prints.length-1].lots+=fill;
+    else prints.push({p:lvl.p,lots:fill});
+    if(lvl.s===0) bookSide.shift();
+    if(!bookSide.length && limitPrice===null) replenish(); // market always fills
+  }
+  return {prints, remaining:size};
+}
+
+function applyPrints(prints){
+  prints.forEach(pr=>{
+    S.ltp = pr.p; S.lts = pr.lots; S.volume += pr.lots*100;
+  });
+}
+
+// check stop triggers against prints; price priority (print order), then time
+function collectTriggered(prints){
+  const fired=[];
+  prints.forEach(pr=>{
+    const hit = S.stops.filter(st=>!st.fired && (
+      (st.side==='buy'  && pr.p >= st.price-1e-9) ||
+      (st.side==='sell' && pr.p <= st.price+1e-9)));
+    hit.sort((a,b)=>a.seq-b.seq); // time priority within one print
+    hit.forEach(st=>{st.fired=true; fired.push({st, byPrint:pr.p});});
+  });
+  return fired;
+}
+
+function execute(order){
+  // order: {side, type, price|null, size, isStopExec, stopInfo}
+  const label = order.isStopExec
+    ? 'Stop '+(order.side==='buy'?'buy':'sell')+' '+fmt(order.stopInfo.price)+' × '+order.size+' → перетворюється на <b>'+order.side+' market '+order.size+'</b>'
+    : '<b>'+order.side+' '+order.type+(order.type!=='market'?' '+fmt(order.price):'')+' × '+lots(order.size)+'</b>';
+  addLog(order.isStopExec?'stop':'order', (order.isStopExec?'⚡ Тригер! ':'Відправлено: ')+label);
+
+  let prints=[], remaining=order.size;
+
+  if(order.type==='market' ){
+    const r = cross(order.side==='buy'?S.asks:S.bids, order.size, null, order.side==='buy');
+    prints=r.prints; remaining=r.remaining;
+  } else { // limit
+    const r = cross(order.side==='buy'?S.asks:S.bids, order.size, order.price, order.side==='buy');
+    prints=r.prints; remaining=r.remaining;
+  }
+
+  prints.forEach(pr=>{
+    addLog('trade','Угода: <b>'+fmt(pr.p)+' × '+lots(pr.lots)+'</b> ('+(pr.lots*100)+' акцій). LTP → '+fmt(pr.p)+', Volume +'+(pr.lots*100)+'.');
+  });
+  applyPrints(prints);
+
+  if(order.type==='limit' && remaining>0){
+    const bookArr = order.side==='buy'? S.bids : S.asks;
+    const best = bookArr[0];
+    const better = order.side==='buy' ? (!best || order.price>best.p+1e-9) : (!best || order.price<best.p-1e-9);
+    insertLevel(bookArr, order.price, remaining, order.side==='buy');
+    if(prints.length){
+      addLog('book','Залишок <b>'+lots(remaining)+'</b> не виконано — стає на котировку як новий '+(order.side==='buy'?'Bid':'Ask')+' <b>'+fmt(order.price)+'</b>.');
+    } else if(better){
+      addLog('book','Ціна '+fmt(order.price)+' не перетинає '+(order.side==='buy'?'Ask':'Bid')+', але краща за поточний '+(order.side==='buy'?'Bid':'Ask')+' → ордер <b>стає на котировку</b>.');
+    } else {
+      addLog('book','Ціна '+fmt(order.price)+' гірша за поточну найкращу → ордер <b>іде в OpenBook</b> і чекає своєї черги.');
+    }
+  }
+  if(order.type==='market' && remaining>0){
+    addLog('book','Ліквідності на видимих рівнях не вистачило, але на біржі завжди є контрагенти — книга поповнилася, ордер виконано.');
+  }
+
+  replenish();
+
+  // stops: main order fully done → now check triggers, price then time
+  const fired = collectTriggered(prints);
+  if(fired.length){
+    fired.forEach(f=>{
+      addLog('stop','Прінт <b>'+fmt(f.byPrint)+'</b> тригерить <b>Stop '+f.st.side+' '+fmt(f.st.price)+' × '+f.st.size+'</b>'+(fired.length>1?' (черговість: ціна → час)':'')+'.');
+    });
+    // execute in trigger order; each may trigger more
+    fired.forEach(f=>{
+      S.stops = S.stops.filter(x=>x.id!==f.st.id);
+      execute({side:f.st.side, type:'market', price:null, size:f.st.size, isStopExec:true, stopInfo:f.st});
+    });
+  }
+
+  // тригер без прінта: перевірка за поточними Bid/Ask після завершення всіх угод
+  processQuoteTriggers();
+}
+
+function processQuoteTriggers(){
+  for(;;){
+    const bid=S.bids[0]?S.bids[0].p:null, ask=S.asks[0]?S.asks[0].p:null;
+    const hits=S.stops.filter(st=>!st.fired && (
+      (st.side==='buy'  && bid!==null && bid>=st.price-1e-9) ||
+      (st.side==='sell' && ask!==null && ask<=st.price+1e-9)));
+    if(!hits.length) return;
+    hits.sort((a,b)=>a.seq-b.seq);
+    const st=hits[0]; st.fired=true;
+    addLog('stop','⚡ Тригер <b>БЕЗ прінта</b>: '+(st.side==='buy'
+      ? 'Bid '+fmt(bid)+' ≥ '+fmt(st.price)
+      : 'Ask '+fmt(ask)+' ≤ '+fmt(st.price))+' → Stop '+st.side+' '+fmt(st.price)+' × '+st.size+' активується без жодної угоди.');
+    S.stops=S.stops.filter(x=>x.id!==st.id);
+    execute({side:st.side, type:'market', price:null, size:st.size, isStopExec:true, stopInfo:st});
+  }
+}
+
+function sendUserOrder(){
+  const type = document.getElementById('ordType').value;
+  const size = parseInt(document.getElementById('ordSize').value,10);
+  const priceRaw = document.getElementById('ordPrice').value;
+  const price = priceRaw===''?null:parseFloat(priceRaw);
+  const warn = document.getElementById('sbWarn');
+  warn.style.display='none';
+
+  if(!size || size<1){return showWarn('Вкажіть кількість лотів (ціле число ≥ 1).');}
+  if((type==='limit'||type==='stop') && (price===null || isNaN(price) || price<=0)){return showWarn('Для '+type+'-ордера потрібна ціна.');}
+
+  prevSnapshot = snapshot();
+
+  if(type==='stop'){
+    S.stopSeq++;
+    const st = {id:Date.now()+Math.random(), seq:S.stopSeq, side, price:+price.toFixed(2), size, fired:false};
+    const bid=S.bids[0]?S.bids[0].p:null, ask=S.asks[0]?S.asks[0].p:null;
+    const immediate = (side==='buy' && bid!==null && bid>=st.price-1e-9) ||
+                      (side==='sell' && ask!==null && ask<=st.price+1e-9);
+    if(immediate){
+      addLog('stop','Відправлено <b>Stop '+side+' '+fmt(st.price)+' × '+lots(size)+'</b> — і миттєвий тригер <b>БЕЗ прінта</b>: '+
+        (side==='buy' ? 'Bid '+fmt(bid)+' ≥ '+fmt(st.price) : 'Ask '+fmt(ask)+' ≤ '+fmt(st.price))+
+        '. Типова помилка junior-трейдера: '+(side==='buy'?'stop buy нижче поточного Bid':'stop sell вище поточного Ask')+'. Виконується негайно за ринком.');
+      execute({side, type:'market', price:null, size, isStopExec:true, stopInfo:st});
+    } else {
+      S.stops.push(st);
+      addLog('stop','Поставлено <b>Stop '+side+' '+fmt(st.price)+' × '+lots(size)+'</b>. Тригер прінтом: '+(side==='buy'?fmt(st.price)+' або вище':fmt(st.price)+' або нижче')+'; тригер без прінта: '+(side==='buy'?'Bid ≥ ':'Ask ≤ ')+fmt(st.price)+'. Прінти, що відбулися до відправлення, не враховуються.');
+    }
+  } else {
+    execute({side, type, price: price!==null? +price.toFixed(2):null, size, isStopExec:false});
+  }
+  renderQuote(true);
+  renderStops();
+}
+
+function showWarn(msg){const w=document.getElementById('sbWarn');w.textContent=msg;w.style.display='block';}
+
+function setSide(s){
+  side=s;
+  document.getElementById('btnSideBuy').className = s==='buy'?'on-buy':'';
+  document.getElementById('btnSideSell').className = s==='sell'?'on-sell':'';
+  const btn=document.getElementById('btnSend');
+  btn.textContent='Відправити '+(s==='buy'?'Buy':'Sell');
+  btn.className='btn '+(s==='buy'?'btn-buy':'btn-sell');
+}
+function typeChanged(){
+  const t=document.getElementById('ordType').value;
+  document.getElementById('priceField').style.visibility = t==='market'?'hidden':'visible';
+  document.getElementById('priceLabel').textContent = t==='stop'?'Ціна стопа':'Ціна';
+}
+
+function renderQuote(animate){
+  const cur = snapshot();
+  const ch = (key)=> animate && prevSnapshot && prevSnapshot[key]!==cur[key] ? ' flash':'';
+  const depth = Math.max(
+    Math.min(S.bids.length-1,4),
+    Math.min(S.asks.length-1,4), 0);
+  let html='<table class="quote"><thead><tr><th>Ticker</th><th>LTP</th><th>LTS</th><th>Bid</th><th></th><th>Ask</th><th>Bid size</th><th></th><th>Ask size</th><th>Volume</th></tr></thead><tbody>';
+  html+='<tr class="qrow"><td>'+S.ticker+'</td>'+
+    '<td class="'+ch('ltp')+'">'+fmt(S.ltp)+'</td>'+
+    '<td class="'+ch('lts')+'">'+S.lts+'</td>'+
+    '<td class="c-bid'+ch('bid')+'">'+(cur.bid!==null?fmt(cur.bid):'—')+'</td><td class="sep">*</td>'+
+    '<td class="c-ask'+ch('ask')+'">'+(cur.ask!==null?fmt(cur.ask):'—')+'</td>'+
+    '<td class="c-bid'+ch('bs')+'">'+(cur.bs!==null?cur.bs:'—')+'</td><td class="sep">*</td>'+
+    '<td class="c-ask'+ch('as')+'">'+(cur.as!==null?cur.as:'—')+'</td>'+
+    '<td class="'+ch('vol')+'">'+S.volume+'</td></tr>';
+  for(let i=1;i<=depth;i++){
+    const b=S.bids[i], a=S.asks[i];
+    html+='<tr class="ob"><td></td><td></td><td></td>'+
+      '<td class="c-bid">'+(b?fmt(b.p):'')+'</td><td class="sep"></td>'+
+      '<td class="c-ask">'+(a?fmt(a.p):'')+'</td>'+
+      '<td class="c-bid">'+(b?b.s:'')+'</td><td class="sep"></td>'+
+      '<td class="c-ask">'+(a?a.s:'')+'</td><td></td></tr>';
+  }
+  html+='</tbody></table><div class="ob-label">Рядок 1 — котировка · нижче — OpenBook · спред: '+(cur.bid!==null&&cur.ask!==null? fmt(cur.ask-cur.bid):'—')+'</div>';
+  document.getElementById('sbQuote').innerHTML=html;
+}
+
+function renderStops(){
+  const box=document.getElementById('stopsList');
+  if(!S.stops.length){box.innerHTML='<div class="empty">Немає активних стопів</div>';return;}
+  box.innerHTML = S.stops.map(st=>
+    '<div class="srow"><span>#'+st.seq+' · Stop <b style="color:'+(st.side==='buy'?'var(--buy)':'var(--sell)')+'">'+st.side+'</b> '+fmt(st.price)+' × '+st.size+'</span>'+
+    '<button class="btn btn-ghost" style="padding:2px 10px;font-size:12px" onclick="cancelStop('+st.seq+')">скасувати</button></div>').join('');
+}
+function cancelStop(seq){
+  S.stops=S.stops.filter(s=>s.seq!==seq);
+  addLog('book','Stop-ордер скасовано.');
+  renderStops();
+}
+
+let logCount=0;
+function addLog(kind,msg){
+  const log=document.getElementById('sbLog');
+  if(logCount===0) log.innerHTML='';
+  logCount++;
+  const d=document.createElement('div');
+  d.className='entry '+kind;
+  d.innerHTML='<div class="t">крок '+logCount+'</div>'+msg;
+  log.prepend(d);
+}
+function clearLog(){logCount=0;document.getElementById('sbLog').innerHTML='<div class="empty">Журнал очищено.</div>';}
+
+// ==================== PRACTICE ====================
+// answer keys: [LTP, LTS, Bid, Ask, BidSize, AskSize, Volume]
+const TASKS=[
+ {cat:'Limit order', quote:'ABC   25.40   2   25.39 * 25.41   2 * 4   22300',
+  ob:null,
+  order:{txt:'Buy limit 25.41 × 2 лоти',side:'buy'},
+  type:'fill', ans:[25.41,2,25.39,25.41,2,2,22500],
+  expl:'Хочемо купити 2 лоти до 25.41 включно. За 25.41 стоїть продавець із 4 лотами → угода за <b>25.41 × 2</b>. LTP 25.41, LTS 2, Ask size 4−2=2, Volume 22300+200=22500. Bid не змінився.'},
+
+ {cat:'Limit order · часткове виконання', quote:'ABC   25.40   2   25.39 * 25.41   2 * 4   22300',
+  ob:'OpenBook (продавці): 25.42 × 3',
+  order:{txt:'Buy limit 25.41 × 5 лотів',side:'buy'},
+  type:'fill', ans:[25.41,4,25.41,25.42,1,3,22700],
+  expl:'За 25.41 лише 4 лоти → купуємо всі 4 (прінт <b>25.41 × 4</b>). Залишок 1 лот стає на котировку як новий Bid 25.41. Наступний продавець з OpenBook (25.42 × 3) стає найкращим Ask. Volume 22300+400=22700.'},
+
+ {cat:'Limit order · в OpenBook', quote:'ABC   25.41   2   25.39 * 25.41   2 * 4   22300',
+  ob:null,
+  order:{txt:'Sell limit 25.42 × 2 лоти',side:'sell'},
+  type:'fill', ans:[25.41,2,25.39,25.41,2,4,22300],
+  expl:'Ми хочемо продати не нижче 25.42, але вже є продавець за кращою ціною 25.41. Наш ордер <b>не виконується і йде в OpenBook</b>. Котировка не змінюється взагалі.'},
+
+ {cat:'Limit order · стає на котировку', quote:'ABC   25.41   2   25.39 * 25.41   2 * 4   22300',
+  ob:null,
+  order:{txt:'Buy limit 25.40 × 3 лоти',side:'buy'},
+  type:'fill', ans:[25.41,2,25.40,25.41,3,4,22300],
+  expl:'Найкращий продавець за 25.41 — ця ціна нас не влаштовує (купуємо до 25.40). Угоди немає. Але наша ціна 25.40 краща за поточний Bid 25.39 → ордер <b>стає на котировку</b> новим Bid 25.40 × 3. LTP/LTS/Volume без змін.'},
+
+ {cat:'Market order', quote:'ABC   74.50   2   74.51 * 74.53   4 * 7   45200',
+  ob:null,
+  order:{txt:'Buy market × 2 лоти',side:'buy'},
+  type:'fill', ans:[74.53,2,74.51,74.53,4,5,45400],
+  expl:'Market купує за найкращою наявною ціною продавців — <b>74.53</b>. Прінт 74.53 × 2. Ask size 7−2=5, Volume +200=45400.'},
+
+ {cat:'Market order', quote:'ABC   74.50   2   74.51 * 74.53   4 * 7   45200',
+  ob:null,
+  order:{txt:'Sell market × 3 лоти',side:'sell'},
+  type:'fill', ans:[74.51,3,74.51,74.53,1,7,45500],
+  expl:'Продаємо за найкращою ціною покупців — <b>74.51</b>. Прінт 74.51 × 3. Bid size 4−3=1, Volume +300=45500.'},
+
+ {cat:'Market order · прохід по книзі', quote:'ABC   74.50   2   74.51 * 74.53   4 * 5   45200',
+  ob:'OpenBook: покупці 74.47 × 7 · продавці 74.55 × 8',
+  order:{txt:'Buy market × 7 лотів',side:'buy'},
+  type:'fill', ans:[74.55,2,74.51,74.55,4,6,45900],
+  expl:'Спершу з\'їдаємо весь Ask 74.53 × 5 (прінт 74.53 × 5), далі беремо 2 лоти з наступного рівня 74.55 (прінт <b>74.55 × 2</b>). Ask тепер 74.55 із залишком 8−2=6. Volume +700=45900. LTS показує останній прінт: 2.'},
+
+ {cat:'Stop order · trigger', quote:'JPM   99.27   4   99.25 * 99.30   5 * 2   19900',
+  ob:'OpenBook: продавці 99.33 × 1 · 99.38 × 3 · 99.40 × 5. Активний стоп: Stop buy 99.34 × 1',
+  order:{txt:'Buy market × 4 лоти',side:'buy'},
+  type:'fill', ans:[99.38,1,99.25,99.38,5,1,20400],
+  expl:'Спочатку Buy market 4 виконується повністю: прінти 99.30×2, 99.33×1, 99.38×1. Тепер перевіряємо тригер: 99.30 і 99.33 — ні (нижче 99.34), <b>99.38 — так</b>. Stop buy 99.34×1 → Buy market 1 → виконується за 99.38 (прінт 99.38×1). Разом 5 лотів: Volume 19900+500=20400. Ask 99.38, залишок 3−1−1=1.'},
+
+ {cat:'Черговість стопів · пріоритет за ціною', quote:'C   50.40   2   50.40 * 50.42   1 * 3   305000',
+  ob:'OpenBook (покупці): 50.38 × 2 · 50.36 × 2 · 50.35 × 10. Стопи: №1 Stop sell 50.36 × 2 (раніше) · №2 Stop sell 50.39 × 1 (пізніше). Приходить Sell limit 50.36 × 5 і виконується повністю.',
+  order:{txt:'Який стоп виконається першим?',side:'sell'},
+  type:'mc',
+  opts:['№1 Stop sell 50.36 — бо був відправлений раніше','№2 Stop sell 50.39 — бо його тригернув раніший прінт (50.38)','Обидва одночасно','Жоден — тригера немає'],
+  correct:1,
+  expl:'Sell limit 50.36×5 генерує прінти по черзі: 50.40×1, 50.38×2, 50.36×2. Перевіряємо кожен прінт: 50.40 нікого не тригерить, <b>50.38 тригерить №2</b> (50.39 ≥ 50.38), 50.36 тригерить №1. Пріоритет за ціною: чий тригер від ранішого прінта — той перший. Час відправлення тут не має значення.'},
+
+ {cat:'Черговість стопів · пріоритет за часом', quote:'C   50.40   2   50.40 * 50.42   1 * 3   305000',
+  ob:'OpenBook (покупці): 50.36 × 2 · 50.35 × 10. Стопи: №1 Stop sell 50.36 × 2 (раніше) · №2 Stop sell 50.39 × 1 (пізніше). Приходить Sell market × 3: прінти 50.40 × 1, потім 50.36 × 2.',
+  order:{txt:'Який стоп виконається першим?',side:'sell'},
+  type:'mc',
+  opts:['№2 Stop sell 50.39 — у нього вища ціна','№1 Stop sell 50.36 — він був відправлений раніше','Стопи скасовуються','Спочатку виконується залишок market-ордера'],
+  correct:1,
+  expl:'Прінт 50.40 нікого не тригерить. Прінт <b>50.36 тригерить обидва стопи одночасно</b> (50.36 ≤ 50.36 і 50.36 ≤ 50.39). Коли ОДИН прінт тригерить кілька стопів — пріоритет за часом відправлення. №1 був раніше → виконується першим. Правило: спочатку ціна, потім час.'},
+
+ {cat:'Розуміння структури', quote:'BAC   27.80   5   27.80 * 27.81   16 * 23   45300',
+  ob:null,
+  order:{txt:'Скільки АКЦІЙ виставлено на продаж за найкращою ціною Ask?',side:'buy'},
+  type:'mc',
+  opts:['23 акції','2300 акцій','16 акцій','45300 акцій'],
+  correct:1,
+  expl:'Ask size = 23 <b>лоти</b>, а 1 лот = 100 акцій → 2300 акцій за ціною 27.81. Це найпоширеніша помилка: розміри в котировці — в лотах, і лише Volume — в акціях.'},
+
+ {cat:'Розуміння структури', quote:'ABC   25.40   2   25.39 * 25.41   2 * 4   22300',
+  ob:null,
+  order:{txt:'Покупець відправляє Buy limit 25.85 × 1. За якою ціною відбудеться угода?',side:'buy'},
+  type:'mc',
+  opts:['25.85 — за ціною ордера','25.41 — за ціною Ask, що стояв раніше','25.39 — за ціною Bid','Угоди не буде'],
+  correct:1,
+  expl:'Limit «до 25.85» означає «за 25.85 <b>або краще</b>». Найкращий продавець стоїть за 25.41 і прийшов на біржу раніше → угода за <b>25.41</b>. Саме тому Bid ніколи не буває вищим за Ask — таке перетинання миттєво стає угодою.'},
+
+ {cat:'Stop order · тригер', quote:'AAPL   45.30   2   45.20 * 45.50   3 * 5   82000',
+  ob:'Активний стоп: Stop buy 45.40. Без жодної угоди Bid змінюється на 45.42 (прийшов новий лімітний покупець).',
+  order:{txt:'Що відбувається зі Stop buy 45.40?',side:'buy'},
+  type:'mc',
+  opts:['Нічого — прінта не було, чекаємо LTP ≥ 45.40','Тригер без прінта: Bid 45.42 ≥ 45.40 → стоп перетворюється на Buy market і виконується','Стоп скасовується біржею','Тригер буде, лише якщо Ask досягне 45.40'],
+  correct:1,
+  expl:'Правило тригера без прінта: <b>Stop buy X спрацьовує, коли Bid ≥ X</b>. Покупці вже стоять на рівні стопа — ринок дійшов до ціни навіть без угоди. Bid 45.42 ≥ 45.40 → тригер, Buy market виконується за поточним Ask.'},
+
+ {cat:'Stop order · тригер', quote:'TSLA   62.10   1   61.90 * 62.20   4 * 6   315000',
+  ob:'Активний стоп: Stop sell 61.80. Без угод котировка змінюється: новий Bid 61.60, новий Ask 61.75.',
+  order:{txt:'Що відбувається зі Stop sell 61.80?',side:'sell'},
+  type:'mc',
+  opts:['Тригер без прінта: Ask 61.75 ≤ 61.80 → стоп перетворюється на Sell market','Нічого: LTP 62.10 вище рівня стопа','Тригер, бо Bid 61.60 нижче 61.80 — stop sell дивиться на Bid','Стоп переставляється на 61.75'],
+  correct:0,
+  expl:'<b>Stop sell Y спрацьовує без прінта, коли Ask ≤ Y</b>: продавці опустилися до рівня стопа. Ask 61.75 ≤ 61.80 → тригер. Stop sell дивиться саме на Ask, а не на Bid. LTP тут ролі не грає — угод не було.'},
+
+ {cat:'Stop order · тригер', quote:'PFE   35.50   4   35.50 * 35.55   5 * 7   1000',
+  ob:'OpenBook (покупці): 35.48 × 6.',
+  order:{txt:'Трейдер відправляє Stop sell 36.51 × 6 лотів',side:'sell'},
+  type:'fill', ans:[35.48,1,35.48,35.55,5,7,1600],
+  expl:'Ask 35.55 ≤ 36.51 → тригер <b>без прінта</b> миттєво в момент відправлення (типова помилка junior-трейдера). Стоп перетворюється на Sell market 6: прінти <b>35.50 × 5</b> і <b>35.48 × 1</b>. LTP 35.48, LTS 1, Bid 35.48 × 5, Volume 1000 + 600 = 1600.'},
+
+ {cat:'Stop order · тригер', quote:'PFE   35.60   2   35.50 * 35.69   5 * 4   3100',
+  ob:'Прінт 35.60 відбувся ДО того, як трейдер відправив стоп.',
+  order:{txt:'Трейдер відправляє Stop sell 35.62 × 1. Чи є тригер у момент відправлення?',side:'sell'},
+  type:'mc',
+  opts:['Так: LTP 35.60 ≤ 35.62','Так: Bid 35.50 ≤ 35.62','Ні: минулі прінти новий стоп не тригерять, а Ask 35.69 > 35.62 — стоп висить і чекає','Стоп відхиляється біржею'],
+  correct:2,
+  expl:'Тригером прінтом може бути лише прінт, що відбувся <b>після</b> відправлення стопа — минулий LTP 35.60 не рахується. Тригер без прінта: Ask 35.69 ≤ 35.62? Ні. Стоп залишається активним. Приклад — із робочої таблиці курсу (ордер №7 у сценарії PFE).'}
+];
+
+const FIELD_NAMES=['LTP','LTS','Bid','Ask','Bid size','Ask size','Volume'];
+let prIdx=0;
+let prState=TASKS.map(()=>null); // null | 'ok' | 'bad'
+let prDone=false;
+
+function renderProg(){
+  document.getElementById('prProg').innerHTML = TASKS.map((t,i)=>
+    '<div class="dot '+(i===prIdx?'cur ':'')+(prState[i]==='ok'?'ok':prState[i]==='bad'?'bad':'')+'">'+(i+1)+'</div>').join('');
+  const okc=prState.filter(s=>s==='ok').length, tot=prState.filter(s=>s!==null).length;
+  document.getElementById('prScore').textContent='Правильно: '+okc+' з '+tot+' розв\'язаних · всього задач: '+TASKS.length;
+}
+
+function quoteHtml(q){
+  return '<div class="qwrap"><table class="quote"><thead><tr><th>Ticker</th><th>LTP</th><th>LTS</th><th>Bid</th><th></th><th>Ask</th><th>Bid size</th><th></th><th>Ask size</th><th>Volume</th></tr></thead><tbody><tr class="qrow">'+
+  (function(){const p=q.split(/\s+/).filter(x=>x!=='*');
+    return '<td>'+p[0]+'</td><td>'+p[1]+'</td><td>'+p[2]+'</td><td class="c-bid">'+p[3]+'</td><td class="sep">*</td><td class="c-ask">'+p[4]+'</td><td class="c-bid">'+p[5]+'</td><td class="sep">*</td><td class="c-ask">'+p[6]+'</td><td>'+p[7]+'</td>';})()+
+  '</tr></tbody></table></div>';
+}
+
+function renderTask(){
+  const t=TASKS[prIdx];
+  let html='<span class="taskcat">Задача '+(prIdx+1)+' / '+TASKS.length+' · '+t.cat+'</span>';
+  html+='<p style="margin-bottom:8px">Котировка виглядає так:</p>'+quoteHtml(t.quote);
+  if(t.ob) html+='<p class="hint" style="margin:8px 0">'+t.ob+'</p>';
+  html+='<div class="order-sent '+t.order.side+'">'+t.order.txt+'</div>';
+
+  if(t.type==='fill'){
+    html+='<p>Введіть котировку <b>після виконання</b>:</p><div class="ansgrid">';
+    FIELD_NAMES.forEach((n,i)=>{
+      html+='<div class="field"><label>'+n+'</label><input id="f'+i+'" type="number" step="0.01" inputmode="decimal"><div class="correct-val" id="cv'+i+'"></div></div>';
+    });
+    html+='</div>';
+    html+='<div class="pr-nav"><button class="btn btn-neutral" id="btnCheck" onclick="checkFill()">Перевірити</button><button class="btn btn-ghost" onclick="prevTask()" '+(prIdx===0?'disabled':'')+'>← Назад</button><button class="btn btn-ghost" id="btnNext" onclick="nextTask()" style="display:none">Далі →</button></div>';
+  } else {
+    html+='<div class="mc" id="mcBox"></div>';
+    html+='<div class="pr-nav"><button class="btn btn-ghost" onclick="prevTask()" '+(prIdx===0?'disabled':'')+'>← Назад</button><button class="btn btn-ghost" id="btnNext" onclick="nextTask()" style="display:none">Далі →</button></div>';
+  }
+  html+='<div class="verdict" id="prVerdict"></div>';
+  html+='<div class="expl" id="prExpl">'+t.expl+'</div>';
+  document.getElementById('prCard').innerHTML=html;
+
+  if(t.type==='mc'){
+    // fill option texts properly (avoid encoding issues from char trick above)
+    const box=document.getElementById('mcBox');
+    box.innerHTML='';
+    t.opts.forEach((o,i)=>{
+      const b=document.createElement('button');
+      b.className='opt'; b.textContent=o;
+      b.onclick=()=>checkMC(i);
+      box.appendChild(b);
+    });
+  }
+  renderProg();
+}
+
+function checkFill(){
+  const t=TASKS[prIdx];
+  let allOk=true, anyEmpty=false;
+  t.ans.forEach((a,i)=>{
+    const inp=document.getElementById('f'+i);
+    const v=inp.value.trim();
+    if(v===''){anyEmpty=true;}
+    const num=parseFloat(v);
+    const ok = v!=='' && Math.abs(num-a)<1e-6;
+    inp.classList.remove('ok','bad');
+    inp.classList.add(ok?'ok':'bad');
+    document.getElementById('cv'+i).textContent = ok?'':'→ '+ (Number.isInteger(a)? a : a.toFixed(2));
+    if(!ok) allOk=false;
+  });
+  const v=document.getElementById('prVerdict');
+  v.className='verdict '+(allOk?'ok':'bad');
+  v.textContent = allOk?'✓ Правильно! Котировка відтворена без помилок.':'Є помилки — правильні значення показані під полями. Розберіть пояснення нижче.';
+  document.getElementById('prExpl').classList.add('show');
+  document.getElementById('btnNext').style.display='inline-block';
+  document.getElementById('btnCheck').disabled=true;
+  if(prState[prIdx]===null) prState[prIdx]=allOk?'ok':'bad';
+  renderProg();
+}
+
+function checkMC(i){
+  const t=TASKS[prIdx];
+  const opts=document.querySelectorAll('#mcBox .opt');
+  opts.forEach(o=>o.disabled=true);
+  const ok = i===t.correct;
+  opts[i].classList.add(ok?'sel-ok':'sel-bad');
+  if(!ok) opts[t.correct].classList.add('reveal-ok');
+  const v=document.getElementById('prVerdict');
+  v.className='verdict '+(ok?'ok':'bad');
+  v.textContent= ok?'✓ Правильно!':'Неправильно. Правильна відповідь підсвічена зеленим.';
+  document.getElementById('prExpl').classList.add('show');
+  document.getElementById('btnNext').style.display='inline-block';
+  if(prState[prIdx]===null) prState[prIdx]=ok?'ok':'bad';
+  renderProg();
+}
+
+function nextTask(){ if(prIdx<TASKS.length-1){prIdx++; renderTask(); window.scrollTo({top:0});} }
+function prevTask(){ if(prIdx>0){prIdx--; renderTask(); window.scrollTo({top:0});} }
+
+// ==================== WALKTHROUGH ====================
+// state: {ltp,lts,vol,bids:[[p,s]..],asks:[[p,s]..],stops:[[n,side,price,size]..]}
+// step: {event, question:{q,opts,correct,expl}|null, prints:[[p,lots]..], after:state, note}
+const WT_SCENARIOS=[
+{
+ title:'KO: повний цикл — ліміти, маркети, ланцюг стопів',
+ intro:'На біржі висять три stop-ордери. Зараз почнуть приходити ордери — вирішуємо котировку повністю, крок за кроком.',
+ initial:{ltp:61.20,lts:3,vol:84000,ticker:'KO',
+   bids:[[61.18,4],[61.15,6],[61.12,10],[61.10,5]],
+   asks:[[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[1,'sell',61.13,2],[2,'buy',61.26,1],[3,'sell',61.15,3]]},
+ steps:[
+ {event:'Приходить <b>Buy limit 61.20 × 2</b>.',
+  question:{q:'Що станеться з ордером і зі стопами?',
+   opts:['Виконається за 61.22 — це найближчий продавець','Угоди не буде: стане новим Bid 61.20; перевіряємо тригер без прінта — жоден стоп не спрацьовує','Стане новим Bid 61.20, і це тригерить Stop sell №3 (61.15)'],
+   correct:1,
+   expl:'Ask 61.22 вищий за ліміт 61.20 → угоди немає, але 61.20 краще за поточний Bid 61.18 → ордер стає на котировку. Тригер без прінта: Stop buy 61.26 — Bid 61.20 ≥ 61.26? Ні. Stop sell 61.15 і 61.13 — Ask 61.22 ≤ них? Ні. Усі стопи залишаються активними.'},
+  prints:[],
+  after:{ltp:61.20,lts:3,vol:84000,ticker:'KO',
+   bids:[[61.20,2],[61.18,4],[61.15,6],[61.12,10],[61.10,5]],
+   asks:[[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[1,'sell',61.13,2],[2,'buy',61.26,1],[3,'sell',61.15,3]]},
+  note:'Ціна 61.20 краща за поточний Bid 61.18 → ордер <b>стає на котировку</b> новим Bid 61.20 × 2. Прінтів немає; тригер без прінта не спрацював (Bid 61.20 &lt; 61.26 для stop buy, Ask 61.22 вище рівнів stop sell). LTP, LTS, Volume без змін.'},
+
+ {event:'Приходить <b>Sell market × 5</b>.',
+  question:{q:'За якими цінами він виконається?',
+   opts:['61.18 × 5 — за «старим» Bid','61.20 × 2, потім 61.18 × 3 — по покупцях згори вниз','61.22 × 5 — за Ask'],
+   correct:1,
+   expl:'Market продає найкращим покупцям по черзі: спершу Bid 61.20 (2 лоти), далі рівень 61.18 (3 з 4 лотів). У покупця на 61.18 залишається 1 лот.'},
+  prints:[[61.20,2],[61.18,3]],
+  after:{ltp:61.18,lts:3,vol:84500,ticker:'KO',
+   bids:[[61.18,1],[61.15,6],[61.12,10],[61.10,5]],
+   asks:[[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[1,'sell',61.13,2],[2,'buy',61.26,1],[3,'sell',61.15,3]]},
+  note:'Перевіряємо тригери по кожному прінту: <b>61.20</b> — ні; <b>61.18</b> — ні (stop-sell стоять на 61.15 і 61.13, stop-buy — на 61.26). Прінти є — тригера немає. Volume +500.'},
+
+ {event:'Приходить <b>Sell limit 61.14 × 8</b>.',
+  question:{q:'Як виконається цей ордер?',
+   opts:['Прінти 61.18 × 1 і 61.15 × 6, а залишок 1 лот стане новим Ask 61.14','Виконається повністю: 61.18 × 1, 61.15 × 6 і 61.12 × 1','Не виконається — стане новим Ask 61.14 на всі 8 лотів'],
+   correct:0,
+   expl:'Продаємо покупцям із ціною 61.14 або вище: 61.18 × 1 та 61.15 × 6 — разом 7 лотів. Наступний покупець 61.12 нижче нашого ліміту — продавати дешевше не можемо. Залишок 1 лот стає на котировку новим Ask 61.14 (краще за старий Ask 61.22, який іде в OpenBook).'},
+  prints:[[61.18,1],[61.15,6]],
+  after:{ltp:61.15,lts:6,vol:85200,ticker:'KO',
+   bids:[[61.12,10],[61.10,5]],
+   asks:[[61.14,1],[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[1,'sell',61.13,2],[2,'buy',61.26,1],[3,'sell',61.15,3]]},
+  note:'Прінти <b>61.18 × 1</b> і <b>61.15 × 6</b>. Volume +700 = 85200. Головний ордер виконано повністю — лише тепер переходимо до перевірки тригерів.'},
+
+ {event:'Перевіряємо тригери по прінтах у порядку їх появи: 61.18 → 61.15.',
+  question:{q:'Які стопи тригеряться?',
+   opts:['№1 (61.13) і №3 (61.15) — обидва','Лише №3: прінт 61.15 досяг його рівня, а до 61.13 прінти не дійшли','№1 — він був відправлений на біржу раніше','Жоден'],
+   correct:1,
+   expl:'Stop sell №3 (61.15): прінт 61.15 ≤ 61.15 — тригер є. Stop sell №1 (61.13): найнижчий прінт 61.15 > 61.13 — тригера немає. Stop buy №2 (61.26): прінти значно нижче.'},
+  prints:[[61.12,3]],
+  after:{ltp:61.12,lts:3,vol:85500,ticker:'KO',
+   bids:[[61.12,7],[61.10,5]],
+   asks:[[61.14,1],[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[1,'sell',61.13,2],[2,'buy',61.26,1]]},
+  note:'№3 Stop sell 61.15 × 3 → <b>Sell market 3</b> → виконується за найкращим Bid 61.12. Прінт <b>61.12 × 3</b>. Зверніть увагу: стоп виконався за 61.12, а не за своєю ціною 61.15.'},
+
+ {event:'Стоп №3 виконано і він створив власний прінт 61.12.',
+  question:{q:'Прінт 61.12 від виконання стопа — чи може він щось тригерити?',
+   opts:['Ні, прінти від стопів не враховуються','Так: 61.12 ≤ 61.13 → тригериться №1 Stop sell 61.13. Це ланцюгове тригерування','Ні, тригери перевіряються лише один раз за подію'],
+   correct:1,
+   expl:'Прінт є прінт, незалежно від того, хто його створив. Виконання одного стопа може тригерити наступний — стопи «зносять» один одного ланцюгом. Саме так виглядають різкі проколи ціни на реальному ринку.'},
+  prints:[[61.12,2]],
+  after:{ltp:61.12,lts:2,vol:85700,ticker:'KO',
+   bids:[[61.12,5],[61.10,5]],
+   asks:[[61.14,1],[61.22,2],[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[2,'buy',61.26,1]]},
+  note:'№1 Stop sell 61.13 × 2 → <b>Sell market 2</b> → прінт <b>61.12 × 2</b>. Перевіряємо далі: 61.12 нових стопів не тригерить. На біржі залишився лише №2 Stop buy 61.26.'},
+
+ {event:'Приходить <b>Buy market × 3</b>.',
+  question:null,
+  prints:[[61.14,1],[61.22,2]],
+  after:{ltp:61.22,lts:2,vol:86000,ticker:'KO',
+   bids:[[61.12,5],[61.10,5]],
+   asks:[[61.25,3],[61.27,5],[61.30,8]],
+   stops:[[2,'buy',61.26,1]]},
+  note:'Проходимо по продавцях: <b>61.14 × 1</b>, далі <b>61.22 × 2</b>. Тригери прінтом: 61.14 — ні; 61.22 — ні (Stop buy 61.26 потребує прінт 61.26 <b>або вище</b>, а 61.22 &lt; 61.26). Без прінта: Bid 61.12 &lt; 61.26 — теж ні. Volume +300.'},
+
+ {event:'Приходить <b>Buy limit 61.27 × 4</b>. На біржі досі висить №2 Stop buy 61.26 × 1.',
+  question:{q:'Як виконається ордер і що зі Stop buy 61.26?',
+   opts:['Прінти 61.25 × 3 і 61.27 × 1; прінт 61.27 ≥ 61.26 → стоп тригериться і виконається за ринковою ціною','Прінти 61.25 × 3 і 61.27 × 1; стоп не тригериться — за ціною рівно 61.26 угод не було','Ордер стане новим Bid 61.27 без угод, стоп тригериться без прінта'],
+   correct:0,
+   expl:'Ліміт 61.27 перетинає продавців 61.25 × 3 і 1 лот із рівня 61.27 — виконано повністю. Для Stop buy 61.26 тригером є прінт 61.26 АБО ВИЩЕ — точний збіг не потрібен, прінт 61.27 підходить. Виконається стоп як market — за найкращим Ask на той момент, а не за 61.26.'},
+  prints:[[61.25,3],[61.27,1]],
+  after:{ltp:61.27,lts:1,vol:86400,ticker:'KO',
+   bids:[[61.12,5],[61.10,5]],
+   asks:[[61.27,4],[61.30,8]],
+   stops:[[2,'buy',61.26,1]]},
+  note:'Ордер виконано повністю (3 + 1 лот). Прінти <b>61.25 × 3</b> і <b>61.27 × 1</b>. Ask тепер 61.27 × 4. Volume +400.'},
+
+ {event:'Головний ордер завершено. Прінт 61.27 тригернув №2 Stop buy 61.26 × 1 — виконуємо його.',
+  question:null,
+  prints:[[61.27,1]],
+  after:{ltp:61.27,lts:1,vol:86500,ticker:'KO',
+   bids:[[61.12,5],[61.10,5]],
+   asks:[[61.27,3],[61.30,8]],
+   stops:[]},
+  note:'№2 → <b>Buy market 1</b> → виконується за Ask 61.27. Прінт <b>61.27 × 1</b> — нових стопів на біржі немає. Сценарій завершено.'}
+ ],
+ summary:'Цей сценарій охопив ключові правила: <b>1)</b> при зміні котировки без прінта діє окреме правило тригера: stop buy — Bid ≥ ціни стопа, stop sell — Ask ≤ ціни стопа (тут воно не спрацювало); <b>2)</b> прінти, що не досягли рівня стопа, не тригерять; <b>3)</b> тригер прінтом: для stop buy — ціна стопа або вище, для stop sell — або нижче; <b>4)</b> вхідний ордер спершу виконується повністю, потім стопи; <b>5)</b> прінти від виконання стопів тригерять наступні стопи (ланцюг); <b>6)</b> стоп виконується за ринковою ціною, а не за ціною стопа.'
+},
+{
+ title:'C: черговість стопів — пріоритет за ціною (приклад із курсу)',
+ intro:'Два stop-ордери на біржі. Приходить один limit — і обидва стопи отримують тригер. Визначаємо правильний порядок.',
+ initial:{ltp:50.40,lts:2,vol:305000,ticker:'C',
+   bids:[[50.40,1],[50.38,2],[50.36,2],[50.35,10]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[1,'sell',50.36,2],[2,'sell',50.39,1]]},
+ steps:[
+ {event:'Приходить <b>Sell limit 50.36 × 5</b>.',
+  question:{q:'Яких покупців він перетне?',
+   opts:['50.40 × 1, 50.38 × 2, 50.36 × 2 — рівно 5 лотів','Лише 50.40 × 1','Усіх, включно з 50.35'],
+   correct:0,
+   expl:'Продаємо всім покупцям із ціною 50.36 або вище: 1 + 2 + 2 = 5 лотів. До покупця за 50.35 не доходимо — це нижче нашого ліміту.'},
+  prints:[[50.40,1],[50.38,2],[50.36,2]],
+  after:{ltp:50.36,lts:2,vol:305500,ticker:'C',
+   bids:[[50.35,10]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[1,'sell',50.36,2],[2,'sell',50.39,1]]},
+  note:'Прінти <b>50.40 × 1</b>, <b>50.38 × 2</b>, <b>50.36 × 2</b>. Ордер виконано повністю. Volume +500 = 305500. Тепер — тригери.'},
+
+ {event:'Головний ордер виконано. Перевіряємо тригери по прінтах у порядку появи: 50.40 → 50.38 → 50.36.',
+  question:{q:'Що з тригерами і в якому порядку виконуються стопи?',
+   opts:['Тригеряться обидва; першим №2 (50.39) — його тригернув раніший прінт 50.38 (пріоритет за ціною)','Тригеряться обидва; першим №1 (50.36) — відправлений на біржу раніше','Тригериться лише №1 — прінт 50.36 точно збігся з його ціною'],
+   correct:0,
+   expl:'Пріоритет за ціною: йдемо по прінтах по черзі. 50.40 — нікого. <b>50.38</b> тригерить №2 (50.38 ≤ 50.39). <b>50.36</b> тригерить №1. Чий тригер настав раніше в ланцюгу прінтів — той виконується першим. Час відправлення тут значення не має.'},
+  prints:[[50.35,1]],
+  after:{ltp:50.35,lts:1,vol:305600,ticker:'C',
+   bids:[[50.35,9]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[1,'sell',50.36,2]]},
+  note:'№2 Stop sell 50.39 × 1 → <b>Sell market 1</b> → прінт <b>50.35 × 1</b>. Котировка: C 50.35 1 | 50.35 × 9 * 50.42 × 3 | 305600 — збігається з прикладом курсу.'},
+
+ {event:'Тепер виконуємо №1.',
+  question:null,
+  prints:[[50.35,2]],
+  after:{ltp:50.35,lts:2,vol:305800,ticker:'C',
+   bids:[[50.35,7]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[]},
+  note:'№1 Stop sell 50.36 × 2 → <b>Sell market 2</b> → прінт <b>50.35 × 2</b>. Фінал: C 50.35 2 | 50.35 × 7 * 50.42 × 3 | 305800 — один в один із курсом.'}
+ ],
+ summary:'Пріоритет за ціною означає: перевіряємо тригер після КОЖНОГО прінта по черзі. Стоп, чий тригер настав від ранішого прінта, виконується першим — навіть якщо він був відправлений на біржу пізніше.'
+},
+{
+ title:'C: черговість стопів — пріоритет за часом (приклад із курсу)',
+ intro:'Та сама пара стопів, але з OpenBook прибрано покупця 50.38 × 2. Тепер один прінт тригерить обидва стопи одночасно.',
+ initial:{ltp:50.40,lts:2,vol:305000,ticker:'C',
+   bids:[[50.40,1],[50.36,2],[50.35,10],[50.33,5]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[1,'sell',50.36,2],[2,'sell',50.39,1]]},
+ steps:[
+ {event:'Приходить <b>Sell market × 3</b>.',
+  question:null,
+  prints:[[50.40,1],[50.36,2]],
+  after:{ltp:50.36,lts:2,vol:305300,ticker:'C',
+   bids:[[50.35,10],[50.33,5]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[1,'sell',50.36,2],[2,'sell',50.39,1]]},
+  note:'Прінти <b>50.40 × 1</b> і <b>50.36 × 2</b>. Volume +300 = 305300. Ордер виконано повністю — перевіряємо тригери.'},
+
+ {event:'Головний ордер виконано. Перевіряємо тригери по прінтах у порядку появи: 50.40 → 50.36.',
+  question:{q:'Що з тригерами і хто виконується першим?',
+   opts:['Прінт 50.36 тригерить обидва стопи одночасно → першим №1, бо він був відправлений на біржу раніше (пріоритет за часом)','Прінт 50.36 тригерить обидва → першим №2, бо його ціна стопа вища','Тригериться лише №1 — точний збіг ціни з прінтом'],
+   correct:0,
+   expl:'50.40 — нікого. 50.36 ≤ 50.36 (№1) і ≤ 50.39 (№2) — ОДИН прінт тригерить обидва. Тоді діє пріоритет за часом: №1 був відправлений раніше, хоча ціна стопа №2 вища. Головне правило: спочатку ціна, потім час.'},
+  prints:[[50.35,2]],
+  after:{ltp:50.35,lts:2,vol:305500,ticker:'C',
+   bids:[[50.35,8],[50.33,5]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[[2,'sell',50.39,1]]},
+  note:'№1 Stop sell 50.36 × 2 → <b>Sell market 2</b> → прінт <b>50.35 × 2</b>. Котировка: C 50.35 2 | 50.35 × 8 * 50.42 × 3 | 305500 — збігається з курсом.'},
+
+ {event:'Тепер №2.',
+  question:null,
+  prints:[[50.35,1]],
+  after:{ltp:50.35,lts:1,vol:305600,ticker:'C',
+   bids:[[50.35,7],[50.33,5]],
+   asks:[[50.42,3],[50.43,1],[50.44,2],[50.48,4]],
+   stops:[]},
+  note:'№2 Stop sell 50.39 × 1 → <b>Sell market 1</b> → прінт <b>50.35 × 1</b>. Фінал: C 50.35 1 | 50.35 × 7 * 50.42 × 3 | 305600 — один в один із курсом.'}
+ ],
+ summary:'Пріоритет за часом застосовується лише тоді, коли один і той самий прінт тригерить кілька стопів одночасно. У всіх інших випадках спершу діє пріоритет за ціною (порядок прінтів).'
+}
+];
+
+// Сценарій із робочої таблиці курсу: PFE, 7 ордерів, обидва механізми тригера
+const NP_SCENARIOS=[{
+ title:'PFE: сім ордерів — тригер без прінта і прінтом',
+ intro:'Ордери приходять на біржу строго по черзі №1–№7. Стежте за номерами стопів — час відправлення визначає пріоритет.',
+ allStops:[[3,'sell',35.50,1,2],[4,'sell',35.49,2,2],[5,'sell',35.48,3,2],[6,'sell',36.51,6,3]],
+ initial:{ticker:'PFE',ltp:35.50,lts:4,vol:1000,
+  bids:[[35.50,5],[35.48,6],[35.45,8],[35.43,3],[35.40,4]],
+  asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+  stops:[]},
+ steps:[
+ {event:'Ордер №1: <b>Buy limit 35.53 × 2</b>.',
+  question:{q:'Що станеться з ордером?',
+   opts:['Угоди не буде — стане новим Bid 35.53, бо ціна краща за поточний Bid 35.50','Угоди не буде — піде в OpenBook','Виконається за 35.55'],
+   correct:0,
+   expl:'Ask 35.55 вищий за ліміт 35.53 → угоди немає. Але 35.53 &gt; поточного Bid 35.50 → ордер стає на котировку новим Bid. Стопи №3–№6 ще не відправлені — перевіряти нічого.'},
+  prints:[],
+  after:{ticker:'PFE',ltp:35.50,lts:4,vol:1000,
+   bids:[[35.53,2],[35.50,5],[35.48,6],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[]},
+  note:'PFE 35.50 4 | 35.53 * 35.55 | 2 * 7 | 1000 — збігається з таблицею курсу.'},
+
+ {event:'Ордер №2: <b>Sell market × 1</b>.',
+  question:null,
+  prints:[[35.53,1]],
+  after:{ticker:'PFE',ltp:35.53,lts:1,vol:1100,
+   bids:[[35.53,1],[35.50,5],[35.48,6],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[]},
+  note:'Продаж найкращому покупцю. Прінт <b>35.53 × 1</b>. PFE 35.53 1 | 35.53 * 35.55 | 1 * 7 | 1100 ✓'},
+
+ {event:'Ордери №3–№5: на біржу по черзі приходять <b>Stop sell 35.50 × 1</b>, <b>Stop sell 35.49 × 2</b> і <b>Stop sell 35.48 × 3</b>.',
+  question:{q:'Чи тригерується хоча б один із них у момент відправлення?',
+   opts:['Так, №3 — адже раніше був прінт 35.50 (початковий LTP)','Ні: минулі прінти не тригерять нові стопи, а Ask 35.55 вищий за всі три рівні — тригера без прінта теж немає','Так, усі три — вони нижче поточного LTP 35.53'],
+   correct:1,
+   expl:'Прінтом: рахуються лише прінти, що відбулися ПІСЛЯ відправлення стопа. Без прінта: stop sell дивиться на Ask — 35.55 ≤ 35.50? ≤ 35.49? ≤ 35.48? Ні. Усі три стопи висять і чекають.'},
+  prints:[],
+  after:{ticker:'PFE',ltp:35.53,lts:1,vol:1100,
+   bids:[[35.53,1],[35.50,5],[35.48,6],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[[3,'sell',35.50,1],[4,'sell',35.49,2],[5,'sell',35.48,3]]},
+  note:'Три стопи активні. Котировка не змінилася.'},
+
+ {event:'Ордер №6: приходить <b>Stop sell 36.51 × 6</b>.',
+  question:{q:'Що відбувається в момент відправлення?',
+   opts:['Стоп висить і чекає прінта 36.51 або нижче','Тригер БЕЗ прінта: Ask 35.55 ≤ 36.51 → стоп миттєво перетворюється на Sell market 6','Біржа відхиляє ордер — ціна стопа вище ринку'],
+   correct:1,
+   expl:'Типова помилка junior-трейдера: stop sell із ціною ВИЩЕ поточного Ask. Правило тригера без прінта: Ask ≤ Y → тригер. 35.55 ≤ 36.51 → стоп виконується негайно за ринком, ще до будь-якої угоди — часто за ціною, якої трейдер не очікував.'},
+  prints:[[35.53,1],[35.50,5]],
+  after:{ticker:'PFE',ltp:35.50,lts:5,vol:1700,
+   bids:[[35.48,6],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[[3,'sell',35.50,1],[4,'sell',35.49,2],[5,'sell',35.48,3]]},
+  note:'Sell market 6 → прінти <b>35.53 × 1</b> і <b>35.50 × 5</b>. PFE 35.50 5 | 35.48 * 35.55 | 6 * 7 | 1700 ✓ таблиця. Ці прінти тепер перевіряємо на тригери для стопів №3–№5.'},
+
+ {event:'Перевірка тригерів по прінтах у порядку появи: 35.53 → 35.50.',
+  question:{q:'Які стопи тригеряться?',
+   opts:['Лише №3: прінт 35.50 ≤ 35.50; до рівнів 35.49 і 35.48 прінти не дійшли','№3, №4 і №5 — всі вони нижче 35.53','Жоден'],
+   correct:0,
+   expl:'35.53 — нікого не тригерить. 35.50: №3 (35.50 ≤ 35.50 ✓), №4 (35.50 ≤ 35.49? ні), №5 (ні).'},
+  prints:[[35.48,1]],
+  after:{ticker:'PFE',ltp:35.48,lts:1,vol:1800,
+   bids:[[35.48,5],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[[4,'sell',35.49,2],[5,'sell',35.48,3]]},
+  note:'№3 Stop sell 35.50 × 1 → <b>Sell market 1</b> → прінт <b>35.48 × 1</b>. PFE 35.48 1 | 35.48 * 35.55 | 5 * 7 | 1800 ✓'},
+
+ {event:'Стоп №3 виконано — його власний прінт <b>35.48</b> перевіряємо далі (ланцюг).',
+  question:{q:'Що тригерить прінт 35.48 і хто виконується першим?',
+   opts:['№4 і №5 одночасно → першим №4 — відправлений на біржу раніше (пріоритет за часом)','Лише №5 — точний збіг ціни 35.48','№4 і №5 → першим №5, бо його ціна ближча до прінта'],
+   correct:0,
+   expl:'35.48 ≤ 35.49 (№4 ✓) і 35.48 ≤ 35.48 (№5 ✓) — один прінт тригерить обидва. Тоді пріоритет за часом відправлення: №4 прийшов на біржу раніше за №5.'},
+  prints:[[35.48,2]],
+  after:{ticker:'PFE',ltp:35.48,lts:2,vol:2000,
+   bids:[[35.48,3],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[[5,'sell',35.48,3]]},
+  note:'№4 Stop sell 35.49 × 2 → <b>Sell market 2</b> → прінт <b>35.48 × 2</b>. PFE 35.48 2 | 35.48 * 35.55 | 3 * 7 | 2000 ✓'},
+
+ {event:'Тепер №5.',
+  question:null,
+  prints:[[35.48,3]],
+  after:{ticker:'PFE',ltp:35.48,lts:3,vol:2300,
+   bids:[[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[]},
+  note:'№5 Stop sell 35.48 × 3 → <b>Sell market 3</b> → прінт <b>35.48 × 3</b>, рівень 35.48 вичерпано, новий Bid — 35.45 × 8. PFE 35.48 3 | 35.45 * 35.55 | 8 * 7 | 2300 ✓. Стопів на біржі більше немає — ланцюг завершено.'},
+
+ {event:'Ордер №7: <b>Buy limit 34.55 × 7</b>.',
+  question:{q:'Куди йде цей ордер?',
+   opts:['Стає новим Bid 34.55','В OpenBook: 34.55 гірше за поточний Bid 35.45','Виконується за 35.55'],
+   correct:1,
+   expl:'Ціна 34.55 значно нижча за найкращий Bid 35.45 → ордер стає в чергу OpenBook і чекає. Котировка не змінюється.'},
+  prints:[],
+  after:{ticker:'PFE',ltp:35.48,lts:3,vol:2300,
+   bids:[[35.45,8],[35.43,3],[35.40,4],[34.55,7]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6]],
+   stops:[]},
+  note:'Фінал: PFE 35.48 3 | 35.45 * 35.55 | 8 * 7 | 2300 — один в один із таблицею курсу.'}
+ ],
+ summary:'Сценарій показав обидва механізми тригера. <b>Без прінта:</b> №6 (Stop sell 36.51) спрацював миттєво в момент відправлення, бо Ask 35.55 ≤ 36.51 — типова помилка junior-трейдера. <b>Контрприклад:</b> №3–№5 при відправленні НЕ тригернулись — минулі прінти не рахуються, а Ask був вищий за їхні рівні. <b>Прінтом:</b> далі №3 тригернувся прінтом 35.50, його власний прінт 35.48 ланцюгом тригернув №4 і №5 (один прінт → два стопи → пріоритет за часом).'
+},
+{
+ title:'PFE-2: сім ордерів — дзеркальний приклад зі стоп-баями',
+ intro:'Другий сценарій із робочої таблиці курсу. Ордери приходять по черзі №1–№7, серед них чотири стопи. Стежте, на що дивиться кожен тип стопа при перевірці тригера.',
+ allStops:[[1,'sell',34.61,1,0],[2,'buy',35.63,1,0],[3,'buy',35.62,3,0],[4,'buy',34.66,4,1],[5,'sell',35.46,3,2]],
+ initial:{ticker:'PFE',ltp:35.50,lts:4,vol:1000,
+  bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+  asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6],[35.69,4]],
+  stops:[]},
+ steps:[
+ {event:'Ордери №1–№3: на біржу по черзі приходять <b>Stop sell 34.61 × 1</b>, <b>Stop buy 35.63 × 1</b> і <b>Stop buy 35.62 × 3</b>.',
+  question:{q:'Чи тригерується хоча б один у момент відправлення?',
+   opts:['Ні: stop sell перевіряє Ask (35.55 не ≤ 34.61), stop buy перевіряє Bid (35.50 не ≥ 35.63 і не ≥ 35.62). Минулі прінти не рахуються','Так, №2 і №3: Ask 35.55 нижчий за їхні рівні — тригер без прінта','Так, №1: LTP колись торкався цін вище 34.61'],
+   correct:0,
+   expl:'Правило без прінта: stop buy дивиться на Bid, stop sell — на Ask. Bid 35.50 не досягає 35.63/35.62, Ask 35.55 не опустився до 34.61. Прінтом можуть тригерити лише угоди ПІСЛЯ відправлення стопа. Усі три висять.'},
+  prints:[],
+  after:{ticker:'PFE',ltp:35.50,lts:4,vol:1000,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,7],[35.58,2],[35.60,1],[35.63,3],[35.65,6],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[2,'buy',35.63,1],[3,'buy',35.62,3]]},
+  note:'Три стопи активні. Котировка не змінилася.'},
+
+ {event:'Ордер №4: приходить <b>Stop buy 34.66 × 4</b>.',
+  question:{q:'Що відбувається в момент відправлення?',
+   opts:['Стоп висить і чекає прінта 34.66 або вище','Миттєвий тригер БЕЗ прінта: Bid 35.50 ≥ 34.66 → стоп перетворюється на Buy market 4','Біржа відхиляє ордер — ціна стопа нижче ринку'],
+   correct:1,
+   expl:'Дзеркальна помилка до stop sell вище ринку: stop buy із ціною НИЖЧЕ поточного Bid. Правило: Bid ≥ X → тригер без прінта. 35.50 ≥ 34.66 → стоп виконується негайно за ринком (за поточним Ask), ще до будь-якої угоди.'},
+  prints:[[35.55,4]],
+  after:{ticker:'PFE',ltp:35.55,lts:4,vol:1400,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,3],[35.58,2],[35.60,1],[35.63,3],[35.65,6],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[2,'buy',35.63,1],[3,'buy',35.62,3]]},
+  note:'№4 → <b>Buy market 4</b> → прінт <b>35.55 × 4</b>. PFE 35.55 4 | 35.50 * 35.55 | 5 * 3 | 1400 ✓ таблиця. Прінт 35.55 не досягає рівнів №2 (35.63) і №3 (35.62) — вони висять далі.'},
+
+ {event:'Ордер №5: приходить <b>Stop sell 35.46 × 3</b>.',
+  question:null,
+  prints:[],
+  after:{ticker:'PFE',ltp:35.55,lts:4,vol:1400,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.55,3],[35.58,2],[35.60,1],[35.63,3],[35.65,6],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[2,'buy',35.63,1],[3,'buy',35.62,3],[5,'sell',35.46,3]]},
+  note:'Перевірка при відправленні: Ask 35.55 не ≤ 35.46 → тригера без прінта немає; минулий прінт 35.55 не рахується. Стоп висить. Активних стопів — чотири.'},
+
+ {event:'Ордер №6: приходить <b>Buy limit 35.70 × 7</b>.',
+  question:{q:'Як виконається цей ордер?',
+   opts:['Повністю: прінти 35.55 × 3, 35.58 × 2, 35.60 × 1 і 35.63 × 1','Частково: 35.55 × 3, 35.58 × 2, 35.60 × 1, а залишок 1 лот стане новим Bid','Угод не буде — стане новим Bid 35.70'],
+   correct:0,
+   expl:'Ліміт 35.70 вищий за перші чотири рівні продавців. Купуємо: 3 + 2 + 1 лоти за 35.55–35.60, і ще 1 лот від продавця 35.63 — разом 7. Виконано повністю, Ask лишається 35.63 × 2.'},
+  prints:[[35.55,3],[35.58,2],[35.60,1],[35.63,1]],
+  after:{ticker:'PFE',ltp:35.63,lts:1,vol:2100,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.63,2],[35.65,6],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[2,'buy',35.63,1],[3,'buy',35.62,3],[5,'sell',35.46,3]]},
+  note:'Прінти <b>35.55 × 3</b>, <b>35.58 × 2</b>, <b>35.60 × 1</b>, <b>35.63 × 1</b>. Volume +700 = 2100 ✓ таблиця. Головний ордер завершено — перевіряємо тригери.'},
+
+ {event:'Перевірка тригерів по прінтах у порядку появи: 35.55 → 35.58 → 35.60 → 35.63.',
+  question:{q:'Що з тригерами стопів №2 (Stop buy 35.63) і №3 (Stop buy 35.62)?',
+   opts:['Обидва тригеряться прінтом 35.63; першим виконується №2 — відправлений на біржу раніше (пріоритет за часом)','Обидва тригеряться; першим №3 — його ціна нижча, отже досягнута раніше','Тригериться лише №2 — точний збіг ціни з прінтом'],
+   correct:0,
+   expl:'Прінти 35.55–35.60 нижчі за обидва рівні. Прінт 35.63: ≥ 35.63 (№2 ✓) і ≥ 35.62 (№3 ✓) — ОДИН прінт тригерить обидва → пріоритет за часом відправлення: №2 прийшов раніше.'},
+  prints:[[35.63,1]],
+  after:{ticker:'PFE',ltp:35.63,lts:1,vol:2200,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.63,1],[35.65,6],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[3,'buy',35.62,3],[5,'sell',35.46,3]]},
+  note:'№2 → <b>Buy market 1</b> → прінт <b>35.63 × 1</b>. PFE 35.63 1 | 35.50 * 35.63 | 5 * 1 | 2200 ✓ таблиця.'},
+
+ {event:'Тепер №3.',
+  question:null,
+  prints:[[35.63,1],[35.65,2]],
+  after:{ticker:'PFE',ltp:35.65,lts:2,vol:2500,
+   bids:[[35.50,5],[35.48,7],[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.65,4],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[5,'sell',35.46,3]]},
+  note:'№3 → <b>Buy market 3</b> → прінти <b>35.63 × 1</b> і <b>35.65 × 2</b>. PFE 35.65 2 | 35.50 * 35.65 | 5 * 4 | 2500 ✓ таблиця. Прінти 35.63/35.65 і котировка стопи №1 та №5 не тригерять.'},
+
+ {event:'Ордер №7: приходить <b>Sell market × 12</b>.',
+  question:{q:'Які прінти пройдуть?',
+   opts:['35.50 × 5 і 35.48 × 7 — рівно 12 лотів','35.50 × 5, 35.48 × 6 і 35.45 × 1','35.45 × 12 — за одною ціною'],
+   correct:0,
+   expl:'Проходимо по покупцях згори вниз: рівень 35.50 має 5 лотів, рівень 35.48 — 7 лотів. 5 + 7 = рівно 12. До рівня 35.45 не доходимо.'},
+  prints:[[35.50,5],[35.48,7]],
+  after:{ticker:'PFE',ltp:35.48,lts:7,vol:3700,
+   bids:[[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.65,4],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[5,'sell',35.46,3]]},
+  note:'Прінти <b>35.50 × 5</b> і <b>35.48 × 7</b>. PFE 35.48 7 | 35.45 * 35.65 | 8 * 4 | 3700 ✓ таблиця.'},
+
+ {event:'Фінальна перевірка тригерів. На біржі лишилися №1 Stop sell 34.61 × 1 і №5 Stop sell 35.46 × 3.',
+  question:{q:'Чи тригерується щось?',
+   opts:['Ні: найнижчий прінт 35.48 > 35.46, а Ask 35.65 не ≤ 35.46 — обидва стопи лишаються активними','Так, №5: Bid 35.45 ≤ 35.46 — тригер без прінта','Так, №5: LTP 35.48 достатньо близько до 35.46'],
+   correct:0,
+   expl:'Прінтом: 35.50 і 35.48 не досягли рівня 35.46. Без прінта: stop sell перевіряється по Ask, а НЕ по Bid — Ask 35.65 не ≤ 35.46. Поширена помилка — дивитися для stop sell на Bid. «Достатньо близько» — не тригер: потрібно рівно або нижче.'},
+  prints:[],
+  after:{ticker:'PFE',ltp:35.48,lts:7,vol:3700,
+   bids:[[35.45,8],[35.43,3],[35.40,4]],
+   asks:[[35.65,4],[35.69,4]],
+   stops:[[1,'sell',34.61,1],[5,'sell',35.46,3]]},
+  note:'Тригерів немає. Сценарій завершено: стопи №1 і №5 залишаються активними на біржі.'}
+ ],
+ summary:'Дзеркальний випадок до першого сценарію: без прінта миттєво тригернувся stop BUY №4 (Bid 35.50 ≥ 34.66). Далі — два стоп-баї одним прінтом 35.63 із пріоритетом за часом (№2 перед №3). І два контрприклади: №1 та №5 так і не спрацювали — прінти не досягли їхніх рівнів, а перевірка без прінта для stop sell іде по Ask, не по Bid. Фінал: PFE 35.48 7 | 35.45 * 35.65 | 8 * 4 | 3700 — збігається з таблицею курсу.'
+}];
+
+function wtQuoteHtml(st, prev){
+  const depth=Math.max(Math.min(st.bids.length-1,4),Math.min(st.asks.length-1,4),0);
+  const ch=(a,b)=> prev && a!==b ? ' flash':'';
+  const bid=st.bids[0]||null, ask=st.asks[0]||null;
+  const pbid=prev?(prev.bids[0]||null):null, pask=prev?(prev.asks[0]||null):null;
+  let h='<table class="quote"><thead><tr><th>Ticker</th><th>LTP</th><th>LTS</th><th>Bid</th><th></th><th>Ask</th><th>Bid size</th><th></th><th>Ask size</th><th>Volume</th></tr></thead><tbody>';
+  h+='<tr class="qrow"><td>'+st.ticker+'</td>'+
+   '<td class="'+ (prev?ch(st.ltp,prev.ltp):'') +'">'+st.ltp.toFixed(2)+'</td>'+
+   '<td class="'+ (prev?ch(st.lts,prev.lts):'') +'">'+st.lts+'</td>'+
+   '<td class="c-bid'+ ch(bid&&bid[0], pbid&&pbid[0]) +'">'+(bid?bid[0].toFixed(2):'—')+'</td><td class="sep">*</td>'+
+   '<td class="c-ask'+ ch(ask&&ask[0], pask&&pask[0]) +'">'+(ask?ask[0].toFixed(2):'—')+'</td>'+
+   '<td class="c-bid'+ ch(bid&&bid[1], pbid&&pbid[1]) +'">'+(bid?bid[1]:'—')+'</td><td class="sep">*</td>'+
+   '<td class="c-ask'+ ch(ask&&ask[1], pask&&pask[1]) +'">'+(ask?ask[1]:'—')+'</td>'+
+   '<td class="'+ (prev?ch(st.vol,prev.vol):'') +'">'+st.vol+'</td></tr>';
+  for(let i=1;i<=depth;i++){
+    const b=st.bids[i],a=st.asks[i];
+    h+='<tr class="ob"><td></td><td></td><td></td>'+
+     '<td class="c-bid">'+(b?b[0].toFixed(2):'')+'</td><td class="sep"></td>'+
+     '<td class="c-ask">'+(a?a[0].toFixed(2):'')+'</td>'+
+     '<td class="c-bid">'+(b?b[1]:'')+'</td><td class="sep"></td>'+
+     '<td class="c-ask">'+(a?a[1]:'')+'</td><td></td></tr>';
+  }
+  h+='</tbody></table>';
+  return h;
+}
+
+// Parameterized step-player: supports several independent walkthrough tabs.
+// cfg: {g: global var name, scenarios, ids:{quote,stops,prints,card}, btnIds:[]}
+function makePlayer(cfg){
+  const P={scen:0,step:0,phase:'ask',correct:0,answered:0,prev:null};
+
+  function allStopsOf(sc){
+    return sc.allStops || sc.initial.stops.map(s=>[s[0],s[1],s[2],s[3],-1]);
+  }
+  function state(){
+    const sc=cfg.scenarios[P.scen];
+    return P.step===0 && P.phase==='ask' ? sc.initial
+      : (P.phase==='ask' ? sc.steps[P.step-1].after : sc.steps[P.step].after);
+  }
+  function load(i){
+    P.scen=i; P.step=0; P.phase='ask'; P.correct=0; P.answered=0; P.prev=null;
+    cfg.btnIds.forEach((id,k)=>{
+      const el=document.getElementById(id);
+      if(el) el.className='btn '+(k===i?'btn-neutral':'btn-ghost');
+    });
+    render();
+  }
+  function render(){
+    const sc=cfg.scenarios[P.scen];
+    const st=state();
+    document.getElementById(cfg.ids.quote).innerHTML=wtQuoteHtml(st, P.prev);
+    P.prev=null;
+
+    // stops panel: активний / виконано / ще не на біржі
+    const activeN=new Set(st.stops.map(s=>s[0]));
+    const indicator=P.step+(P.phase==='done'?1:0);
+    const all=allStopsOf(sc);
+    document.getElementById(cfg.ids.stops).innerHTML = all.length
+      ? all.map(s=>{
+          const status = activeN.has(s[0])?'активний':(indicator>s[4]?'виконано':'ще не на біржі');
+          const cls = status==='виконано'?' gone':(status==='ще не на біржі'?' pending':'');
+          return '<div class="srow'+cls+'"><span>№'+s[0]+' · Stop <b style="color:'+(s[1]==='buy'?'var(--buy)':'var(--sell)')+'">'+s[1]+'</b> '+s[2].toFixed(2)+' × '+s[3]+'</span><span class="hint">'+status+'</span></div>';
+        }).join('')
+      : '<div class="empty">Немає стопів</div>';
+
+    // prints strip
+    const pr = P.phase==='done' ? sc.steps[P.step].prints : null;
+    document.getElementById(cfg.ids.prints).innerHTML = pr===null ? '' :
+      (pr.length ? 'Прінти: '+pr.map(p=>'<b>'+p[0].toFixed(2)+' × '+p[1]+'</b>').join('') : 'Прінтів немає — угод не було.');
+
+    const card=document.getElementById(cfg.ids.card);
+    const total=sc.steps.length;
+
+    if(P.step>=total){
+      card.innerHTML='<div class="step-eyebrow">Сценарій завершено</div><h3>'+sc.title+'</h3>'+
+        '<div class="wt-final">'+sc.summary+'</div>'+
+        (P.answered? '<div class="wt-score">Правильних відповідей: '+P.correct+' з '+P.answered+'</div>':'')+
+        '<div class="pr-nav"><button class="btn btn-neutral" onclick="'+cfg.g+'.load('+P.scen+')">Пройти ще раз</button>'+
+        (cfg.scenarios.length>1?'<button class="btn btn-ghost" onclick="'+cfg.g+'.load('+((P.scen+1)%cfg.scenarios.length)+')">Наступний сценарій →</button>':'')+
+        '</div>';
+      return;
+    }
+
+    const step=sc.steps[P.step];
+    let h='<div class="step-eyebrow">Крок '+(P.step+1)+' з '+total+' · '+sc.title+'</div>';
+    if(P.step===0 && P.phase==='ask') h+='<p class="hint" style="margin-bottom:10px">'+sc.intro+'</p>';
+    h+='<div class="step-event">'+step.event+'</div>';
+
+    if(P.phase==='ask'){
+      if(step.question){
+        h+='<p style="font-weight:600;margin-bottom:8px">'+step.question.q+'</p><div class="mc" id="'+cfg.g+'_mc"></div>';
+        h+='<div class="expl" id="'+cfg.g+'_expl">'+step.question.expl+'</div>';
+        h+='<div class="pr-nav"><button class="btn btn-neutral" id="'+cfg.g+'_exec" onclick="'+cfg.g+'.exec()" disabled>Виконати крок →</button></div>';
+      } else {
+        h+='<div class="pr-nav"><button class="btn btn-neutral" onclick="'+cfg.g+'.exec()">Виконати крок →</button></div>';
+      }
+    } else {
+      h+='<div class="step-note">'+step.note+'</div>';
+      h+='<div class="pr-nav"><button class="btn btn-neutral" onclick="'+cfg.g+'.next()">'+(P.step===total-1?'Підсумок →':'Наступна подія →')+'</button></div>';
+    }
+    card.innerHTML=h;
+
+    if(P.phase==='ask' && step.question){
+      const box=document.getElementById(cfg.g+'_mc');
+      step.question.opts.forEach((o,i)=>{
+        const b=document.createElement('button');
+        b.className='opt'; b.textContent=o;
+        b.onclick=()=>{
+          box.querySelectorAll('.opt').forEach(x=>x.disabled=true);
+          const ok=i===step.question.correct;
+          b.classList.add(ok?'sel-ok':'sel-bad');
+          if(!ok) box.querySelectorAll('.opt')[step.question.correct].classList.add('reveal-ok');
+          document.getElementById(cfg.g+'_expl').classList.add('show');
+          document.getElementById(cfg.g+'_exec').disabled=false;
+          P.answered++; if(ok) P.correct++;
+        };
+        box.appendChild(b);
+      });
+    }
+  }
+  function exec(){ P.prev=state(); P.phase='done'; render(); }
+  function next(){ P.step++; P.phase='ask'; render(); window.scrollTo({top:0}); }
+  return {load,exec,next};
+}
+
+const WT1=makePlayer({g:'WT1',scenarios:WT_SCENARIOS,ids:{quote:'wtQuote',stops:'wtStops',prints:'wtPrints',card:'wtCard'},btnIds:['wtBtnA','wtBtnB','wtBtnC']});
+function loadWT(i){WT1.load(i);}
+const NP=makePlayer({g:'NP',scenarios:NP_SCENARIOS,ids:{quote:'np_Quote',stops:'np_Stops',prints:'np_Prints',card:'np_Card'},btnIds:['npBtnA','npBtnB']});
+
+// ==================== INIT ====================
+loadPreset('abc');
+clearLog(); logCount=0;
+document.getElementById('sbLog').innerHTML='<div class="empty">Відправте перший ордер — тут з\'явиться покрокове пояснення.</div>';
+renderTask();
+loadWT(0);
+NP.load(0);
+</script>
+</body>
+</html>
