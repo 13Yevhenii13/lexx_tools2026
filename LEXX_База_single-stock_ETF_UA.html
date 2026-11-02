@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEXX — Single-Stock ETF Database</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8fafc;--sf:#fff;--s2:#f1f5f9;--bd:#e2e8f0;--bd2:#cbd5e1;
+  --ink:#1e293b;--txt:#334155;--mut:#64748b;--sub:#94a3b8;
+  --blue:#2563eb;--blt:#eff6ff;--bbd:#93c5fd;
+  --green:#16a34a;--glt:#f0fdf4;--gbd:#86efac;
+  --red:#dc2626;--rlt:#fef2f2;--rbd:#fca5a5;
+  --gold:#d97706;--olt:#fffbeb;--obd:#fcd34d;
+  --purple:#7c3aed;--plt:#f5f3ff;--pbd:#ddd6fe;
+  --sans:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}
+
+.hdr{background:var(--ink);padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--blue)}
+.h-logo{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff}
+.h-logo span{color:#60a5fa}
+.h-badge{background:var(--blue);color:#fff;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:3px;margin-left:4px}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.h-stat{font-size:11px;color:#94a3b8;font-family:var(--mono)}
+.h-stat span{color:#60a5fa;font-weight:600}
+.hbtn{background:transparent;color:#60a5fa;border:1px solid #374151;font-size:11px;font-weight:600;padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .15s}
+.hbtn:hover{border-color:#60a5fa;color:#fff}
+
+.search-section{background:var(--sf);border-bottom:1px solid var(--bd);padding:18px 24px}
+.search-wrap{max-width:900px;margin:0 auto}
+.search-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.search-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-input{font-family:var(--mono);font-size:22px;font-weight:600;border:2px solid var(--bd2);border-radius:8px;padding:11px 16px;outline:none;width:190px;text-transform:uppercase;letter-spacing:2px;background:var(--sf);color:var(--ink);transition:border-color .15s}
+.search-input:focus{border-color:var(--blue);background:var(--blt)}
+.search-input::placeholder{color:var(--sub);font-size:15px;letter-spacing:1px;text-transform:none}
+.filter-row{display:flex;gap:7px;flex-wrap:wrap}
+.fbtn{background:var(--sf);border:1.5px solid var(--bd);color:var(--mut);font-size:11px;font-weight:700;padding:6px 13px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fbtn:hover{border-color:var(--bd2);color:var(--ink)}
+.fbtn.active{color:#fff;border-color:transparent}
+.fa.active{background:var(--ink)}
+.fb.active{background:var(--green)}
+.fc.active{background:var(--red)}
+.fd.active{background:var(--purple)}
+.result-info{font-size:12px;color:var(--mut);margin-top:10px;min-height:18px}
+
+.main{max-width:1200px;margin:0 auto;padding:22px 24px 60px}
+
+.stock-section{margin-bottom:28px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.stock-header{display:flex;align-items:center;gap:14px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--bd)}
+.stock-ticker{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--blue);min-width:72px}
+.stock-name{font-size:14px;font-weight:600}
+.stock-sector{font-size:11px;color:var(--mut);margin-top:2px}
+.stock-count{margin-left:auto;font-size:11px;color:var(--sub);font-family:var(--mono)}
+
+.etf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.etf-card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;overflow:hidden;transition:box-shadow .15s}
+.etf-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.ec-head{padding:11px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+.ec-ticker{font-family:var(--mono);font-size:15px;font-weight:700;min-width:55px}
+.tc-bull{color:var(--green)}.tc-bear{color:var(--red)}.tc-cc{color:var(--purple)}
+.ec-name{font-size:11.5px;color:var(--txt);line-height:1.4;flex:1}
+.ec-type{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:3px;flex-shrink:0}
+.t-bull{background:var(--glt);color:var(--green);border:1px solid var(--gbd)}
+.t-bear{background:var(--rlt);color:var(--red);border:1px solid var(--rbd)}
+.t-cc{background:var(--plt);color:var(--purple);border:1px solid var(--pbd)}
+.ec-body{padding:11px 14px}
+.ec-desc{font-size:11.5px;color:var(--mut);line-height:1.6;margin-bottom:10px}
+.ec-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ec-stat{background:var(--s2);border-radius:5px;padding:6px 8px;text-align:center}
+.ec-stat-val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
+.sv-bull{color:var(--green)}.sv-bear{color:var(--red)}.sv-cc{color:var(--purple)}
+.ec-stat-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--sub);margin-top:1px}
+.ec-provider{font-size:10px;color:var(--sub);margin-top:7px}
+
+.empty{text-align:center;padding:60px 20px;color:var(--mut)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.empty-txt{font-size:15px;margin-bottom:5px}
+.empty-sub{font-size:12px;color:var(--sub)}
+
+.footer{background:var(--sf);border-top:1px solid var(--bd);padding:12px 24px;font-size:11px;color:var(--sub);text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="h-logo">LEXX <span>International</span><span class="h-badge">Single-Stock ETF DB</span></div>
+  </div>
+  <div class="h-right">
+    <div class="h-stat">Акцій: <span id="statS">0</span> · ETF: <span id="statE">0</span></div>
+    <button class="hbtn" onclick="exportJSON()">↓ Експорт JSON</button>
+    <label class="hbtn" style="cursor:pointer">↑ Імпорт JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+  </div>
+</div>
+
+<div class="search-section">
+  <div class="search-wrap">
+    <div class="search-label">Пошук за тікером акції</div>
+    <div class="search-row">
+      <input class="search-input" id="si" placeholder="NVDA, TSLA…" maxlength="6"
+             oninput="onSearch()" onkeydown="if(event.key==='Escape'){this.value='';onSearch()}">
+      <div class="filter-row">
+        <button class="fbtn fa active" onclick="setF('all',this)">Всі типи</button>
+        <button class="fbtn fb" onclick="setF('bull',this)">▲ Leveraged Bull</button>
+        <button class="fbtn fc" onclick="setF('bear',this)">▼ Inverse Bear</button>
+        <button class="fbtn fd" onclick="setF('cc',this)">◎ Covered Call</button>
+      </div>
+    </div>
+    <div class="result-info" id="ri"></div>
+  </div>
+</div>
+
+<div class="main" id="mainArea"></div>
+
+<div class="footer">
+  Добірка single-stock ETF на популярні акції США від провідних провайдерів (Direxion, GraniteShares, T-Rex, Tradr, Defiance, YieldMax). Список не вичерпний: нові фонди регулярно запускаються, а малі — закриваються. Розмір фонду (AUM) — орієнтовний, на момент оновлення бази; малі фонди (< $100 млн) часто мають широкий спред — перевіряйте ліквідність у терміналі перед угодою. Не є інвестиційною рекомендацією.
+</div>
+
+<script>
+let DB = {
+ stocks:[
+  {ticker:'NVDA', name:'NVIDIA Corporation',            sector:'Semiconductors / AI'},
+  {ticker:'TSLA', name:'Tesla, Inc.',                   sector:'Electric Vehicles'},
+  {ticker:'AAPL', name:'Apple Inc.',                    sector:'Technology / Consumer'},
+  {ticker:'AMZN', name:'Amazon.com, Inc.',              sector:'E-Commerce / Cloud'},
+  {ticker:'MSFT', name:'Microsoft Corporation',         sector:'Technology / Cloud'},
+  {ticker:'GOOGL',name:'Alphabet Inc.',                 sector:'Search / Advertising'},
+  {ticker:'META', name:'Meta Platforms, Inc.',          sector:'Social Media'},
+  {ticker:'COIN', name:'Coinbase Global, Inc.',         sector:'Crypto Exchange'},
+  {ticker:'AMD',  name:'Advanced Micro Devices, Inc.',  sector:'Semiconductors'},
+  {ticker:'MSTR', name:'Strategy Inc (ex-MicroStrategy)', sector:'Bitcoin Treasury'},
+  {ticker:'PLTR', name:'Palantir Technologies Inc.',    sector:'AI / Data Analytics'},
+  {ticker:'HOOD', name:'Robinhood Markets, Inc.',       sector:'Fintech / Brokerage'},
+  {ticker:'SMCI', name:'Super Micro Computer, Inc.',    sector:'AI Servers'},
+  {ticker:'NFLX', name:'Netflix, Inc.',                 sector:'Streaming'},
+  {ticker:'JPM',  name:'JPMorgan Chase & Co.',          sector:'Banking'},
+  {ticker:'SNOW', name:'Snowflake Inc.',                sector:'Cloud Data'},
+  {ticker:'UBER', name:'Uber Technologies, Inc.',       sector:'Rideshare / Mobility'},
+  {ticker:'MARA', name:'MARA Holdings, Inc.',           sector:'Bitcoin Mining'},
+  {ticker:'MU',   name:'Micron Technology, Inc.',       sector:'Memory Semiconductors'},
+  {ticker:'AVGO', name:'Broadcom Inc.',                 sector:'Semiconductors'},
+  {ticker:'BABA', name:'Alibaba Group Holding Ltd.',    sector:'Chinese E-Commerce'},
+  {ticker:'PYPL', name:'PayPal Holdings, Inc.',         sector:'Fintech / Payments'},
+  {ticker:'XYZ',  name:'Block, Inc. (ex-Square, SQ)',   sector:'Fintech / Payments'},
+  {ticker:'CVNA', name:'Carvana Co.',                   sector:'Automotive Retail'},
+  {ticker:'XOM',  name:'Exxon Mobil Corporation',       sector:'Energy / Oil & Gas'},
+  {ticker:'PANW', name:'Palo Alto Networks, Inc.',      sector:'Cybersecurity'},
+  {ticker:'SHOP', name:'Shopify Inc.',                  sector:'E-Commerce Platform'},
+  {ticker:'BA',   name:'The Boeing Company',            sector:'Aerospace / Defense'},
+  {ticker:'IONQ', name:'IonQ, Inc.',                    sector:'Quantum Computing'},
+  {ticker:'TSM',  name:'Taiwan Semiconductor Mfg.',    sector:'Semiconductors / Foundry'},
+  {ticker:'ADBE', name:'Adobe Inc.',                    sector:'Software / Creative'},
+  {ticker:'ASML', name:'ASML Holding N.V.',             sector:'Semiconductor Equipment'},
+  {ticker:'CSCO', name:'Cisco Systems, Inc.',           sector:'Networking / Tech'},
+  {ticker:'MRVL', name:'Marvell Technology, Inc.',      sector:'Semiconductors'},
+  {ticker:'BRKB', name:'Berkshire Hathaway Inc. (B)',   sector:'Conglomerate / Finance'},
+  {ticker:'GME',  name:'GameStop Corp.',                sector:'Gaming / Retail'},
+  {ticker:'RBLX', name:'Roblox Corporation',            sector:'Gaming / Metaverse'},
+  {ticker:'DKNG', name:'DraftKings Inc.',               sector:'Sports Betting'},
+  {ticker:'RDDT', name:'Reddit, Inc.',                  sector:'Social Media'},
+  {ticker:'HIMS', name:'Hims & Hers Health, Inc.',      sector:'Telehealth / GLP-1'},
+  {ticker:'CRCL', name:'Circle Internet Group',         sector:'Crypto / Stablecoin'},
+  {ticker:'MRNA', name:'Moderna, Inc.',                 sector:'Biotechnology / mRNA'},
+  {ticker:'AI',   name:'C3.ai, Inc.',                   sector:'Enterprise AI'},
+  {ticker:'RIVN', name:'Rivian Automotive, Inc.',       sector:'Electric Vehicles'},
+  {ticker:'SOFI', name:'SoFi Technologies, Inc.',       sector:'Fintech / Banking'},
+  {ticker:'INTC', name:'Intel Corporation',             sector:'Semiconductors'},
+  {ticker:'ORCL', name:'Oracle Corporation',            sector:'Cloud / Database'},
+ ],
+ etfs:[
+  // ── NVDA ──
+  {u:'NVDA',ticker:'NVDL', name:'GraniteShares 2x Long NVDA Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:3830000000, desc:'Прагне дати 2x від денної зміни NVDA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'NVDA',ticker:'NVDU', name:'Direxion Daily NVDA Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:530260000, desc:'Прагне дати 2x від денної зміни NVDA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'NVDA',ticker:'NVDX', name:'T-Rex 2X Long NVIDIA Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:483740000, desc:'Прагне дати 2x від денної зміни NVDA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'NVDA',ticker:'NVD', name:'GraniteShares 2x Short NVDA Daily ETF', p:'GraniteShares', type:'bear',lev:'-2x', vol:57360000, desc:'Зворотний ETF: прагне дати -2x від денної зміни NVDA — росте, коли NVDA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'NVDA',ticker:'NVDQ', name:'T-Rex 2X Inverse NVIDIA Daily Target ETF', p:'T-Rex', type:'bear',lev:'-2x', vol:23420000, desc:'Зворотний ETF: прагне дати -2x від денної зміни NVDA — росте, коли NVDA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'NVDA',ticker:'NVDS', name:'Tradr 1.5X Short NVDA Daily ETF', p:'Tradr', type:'bear',lev:'-1.5x', vol:16010000, desc:'Зворотний ETF: прагне дати -1.5x від денної зміни NVDA — росте, коли NVDA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'NVDA',ticker:'NVDD', name:'Direxion Daily NVDA Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:17440000, desc:'Зворотний ETF: прагне дати -1x від денної зміни NVDA — росте, коли NVDA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'NVDA',ticker:'NVDY', name:'YieldMax NVDA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:1430000000, desc:'Опціонна income-стратегія на NVDA: продаж опціонів дає високі, але нестабільні виплати. Зростання NVDA фонд отримує лише частково, а падіння — майже повністю.'},
+  {u:'NVDA',ticker:'DIPS', name:'YieldMax Short NVDA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'-1x', vol:11340000, desc:'Опціонна income-стратегія з короткою експозицією на NVDA: заробляє, коли NVDA падає або стоїть на місці, і втрачає при різкому зростанні NVDA.'},
+  // ── TSLA ──
+  {u:'TSLA',ticker:'TSLL', name:'Direxion Daily TSLA Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:4059999999, desc:'Прагне дати 2x від денної зміни TSLA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSLA',ticker:'TSLT', name:'T-Rex 2X Long Tesla Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:146170000, desc:'Прагне дати 2x від денної зміни TSLA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSLA',ticker:'TSLR', name:'GraniteShares 2x Long TSLA Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:77750000, desc:'Прагне дати 2x від денної зміни TSLA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSLA',ticker:'TSL', name:'GraniteShares 1.25x Long TSLA Daily ETF', p:'GraniteShares', type:'bull',lev:'1.25x', vol:11090000, desc:'Прагне дати 1.25x від денної зміни TSLA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 1.25x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSLA',ticker:'TSLQ', name:'Tradr 2X Short TSLA Daily ETF', p:'Tradr', type:'bear',lev:'-2x', vol:110910000, desc:'Зворотний ETF: прагне дати -2x від денної зміни TSLA — росте, коли TSLA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'TSLA',ticker:'TSLZ', name:'T-Rex 2X Inverse Tesla Daily Target ETF', p:'T-Rex', type:'bear',lev:'-2x', vol:29970000, desc:'Зворотний ETF: прагне дати -2x від денної зміни TSLA — росте, коли TSLA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'TSLA',ticker:'TSDD', name:'GraniteShares 2x Short TSLA Daily ETF', p:'GraniteShares', type:'bear',lev:'-2x', vol:21110000, desc:'Зворотний ETF: прагне дати -2x від денної зміни TSLA — росте, коли TSLA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'TSLA',ticker:'TSLS', name:'Direxion Daily TSLA Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:56540000, desc:'Зворотний ETF: прагне дати -1x від денної зміни TSLA — росте, коли TSLA падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'TSLA',ticker:'TSLY', name:'YieldMax TSLA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:705460000, desc:'Опціонна income-стратегія на TSLA: продаж опціонів дає високі, але нестабільні виплати. Зростання TSLA фонд отримує лише частково, а падіння — майже повністю.'},
+  {u:'TSLA',ticker:'CRSH', name:'YieldMax Short TSLA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'-1x', vol:14410000, desc:'Опціонна income-стратегія з короткою експозицією на TSLA: заробляє, коли TSLA падає або стоїть на місці, і втрачає при різкому зростанні TSLA.'},
+  // ── AAPL ──
+  {u:'AAPL',ticker:'AAPU', name:'Direxion Daily AAPL Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:172490000, desc:'Прагне дати 2x від денної зміни AAPL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AAPL',ticker:'AAPB', name:'GraniteShares 2x Long AAPL Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:18180000, desc:'Прагне дати 2x від денної зміни AAPL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AAPL',ticker:'AAPX', name:'T-Rex 2X Long Apple Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:10350000, desc:'Прагне дати 2x від денної зміни AAPL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AAPL',ticker:'AAPD', name:'Direxion Daily AAPL Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:15080000, desc:'Зворотний ETF: прагне дати -1x від денної зміни AAPL — росте, коли AAPL падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'AAPL',ticker:'APLY', name:'YieldMax AAPL Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:121760000, desc:'Опціонна income-стратегія на AAPL: продаж опціонів дає високі, але нестабільні виплати. Зростання AAPL фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── AMZN ──
+  {u:'AMZN',ticker:'AMZU', name:'Direxion Daily AMZN Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:289140000, desc:'Прагне дати 2x від денної зміни AMZN. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AMZN',ticker:'AMZZ', name:'GraniteShares 2x Long AMZN Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:38450000, desc:'Прагне дати 2x від денної зміни AMZN. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AMZN',ticker:'AMZD', name:'Direxion Daily AMZN Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:16629999, desc:'Зворотний ETF: прагне дати -1x від денної зміни AMZN — росте, коли AMZN падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'AMZN',ticker:'AMZO', name:'Tradr 2X Short AMZN Daily ETF', p:'Tradr', type:'bear',lev:'-2x', vol:4390000, desc:'Зворотний ETF: прагне дати -2x від денної зміни AMZN — росте, коли AMZN падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'AMZN',ticker:'AMZY', name:'YieldMax AMZN Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:213560000, desc:'Опціонна income-стратегія на AMZN: продаж опціонів дає високі, але нестабільні виплати. Зростання AMZN фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── MSFT ──
+  {u:'MSFT',ticker:'MSFU', name:'Direxion Daily MSFT Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:511910000, desc:'Прагне дати 2x від денної зміни MSFT. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSFT',ticker:'MSFL', name:'GraniteShares 2x Long MSFT Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:64239999, desc:'Прагне дати 2x від денної зміни MSFT. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSFT',ticker:'MSFX', name:'T-Rex 2X Long Microsoft Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:18800000, desc:'Прагне дати 2x від денної зміни MSFT. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSFT',ticker:'MSFD', name:'Direxion Daily MSFT Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:10430000, desc:'Зворотний ETF: прагне дати -1x від денної зміни MSFT — росте, коли MSFT падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'MSFT',ticker:'MSFO', name:'YieldMax MSFT Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:84310000, desc:'Опціонна income-стратегія на MSFT: продаж опціонів дає високі, але нестабільні виплати. Зростання MSFT фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── GOOGL ──
+  {u:'GOOGL',ticker:'GGLL', name:'Direxion Daily GOOGL Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:1010000000, desc:'Прагне дати 2x від денної зміни GOOGL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'GOOGL',ticker:'GOOX', name:'T-Rex 2X Long Alphabet Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:67970000, desc:'Прагне дати 2x від денної зміни GOOGL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'GOOGL',ticker:'GOU', name:'GraniteShares 2x Long GOOGL Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:14090000, desc:'Прагне дати 2x від денної зміни GOOGL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'GOOGL',ticker:'GGLS', name:'Direxion Daily GOOGL Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:13110000, desc:'Зворотний ETF: прагне дати -1x від денної зміни GOOGL — росте, коли GOOGL падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'GOOGL',ticker:'GOOY', name:'YieldMax GOOGL Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:221780000, desc:'Опціонна income-стратегія на GOOGL: продаж опціонів дає високі, але нестабільні виплати. Зростання GOOGL фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── META ──
+  {u:'META',ticker:'METU', name:'Direxion Daily META Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:489230000, desc:'Прагне дати 2x від денної зміни META. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'META',ticker:'FBL', name:'GraniteShares 2x Long META Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:210580000, desc:'Прагне дати 2x від денної зміни META. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'META',ticker:'METD', name:'Direxion Daily META Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:8590000, desc:'Зворотний ETF: прагне дати -1x від денної зміни META — росте, коли META падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'META',ticker:'FBY', name:'YieldMax META Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:127950000, desc:'Опціонна income-стратегія на META: продаж опціонів дає високі, але нестабільні виплати. Зростання META фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── COIN ──
+  {u:'COIN',ticker:'CONL', name:'GraniteShares 2x Long COIN Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:610720000, desc:'Прагне дати 2x від денної зміни COIN. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'COIN',ticker:'CONX', name:'Direxion Daily COIN Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:6880000, desc:'Прагне дати 2x від денної зміни COIN. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'COIN',ticker:'CONI', name:'GraniteShares 2x Short COIN Daily ETF', p:'GraniteShares', type:'bear',lev:'-2x', vol:13520000, desc:'Зворотний ETF: прагне дати -2x від денної зміни COIN — росте, коли COIN падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'COIN',ticker:'CONY', name:'YieldMax COIN Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:395360000, desc:'Опціонна income-стратегія на COIN: продаж опціонів дає високі, але нестабільні виплати. Зростання COIN фонд отримує лише частково, а падіння — майже повністю.'},
+  {u:'COIN',ticker:'FIAT', name:'YieldMax Short COIN Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'-1x', vol:28720000, desc:'Опціонна income-стратегія з короткою експозицією на COIN: заробляє, коли COIN падає або стоїть на місці, і втрачає при різкому зростанні COIN.'},
+  // ── AMD ──
+  {u:'AMD',ticker:'AMDL', name:'GraniteShares 2x Long AMD Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:1220000000, desc:'Прагне дати 2x від денної зміни AMD. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AMD',ticker:'AMUU', name:'Direxion Daily AMD Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:96590000, desc:'Прагне дати 2x від денної зміни AMD. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AMD',ticker:'AMDD', name:'Direxion Daily AMD Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:22160000, desc:'Зворотний ETF: прагне дати -1x від денної зміни AMD — росте, коли AMD падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'AMD',ticker:'DAMD', name:'Defiance Daily Target 2X Short AMD ETF', p:'Defiance', type:'bear',lev:'-2x', vol:12620000, desc:'Зворотний ETF: прагне дати -2x від денної зміни AMD — росте, коли AMD падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'AMD',ticker:'AMDY', name:'YieldMax AMD Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:462320000, desc:'Опціонна income-стратегія на AMD: продаж опціонів дає високі, але нестабільні виплати. Зростання AMD фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── MSTR ──
+  {u:'MSTR',ticker:'MSTU', name:'T-Rex 2X Long MSTR Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:547920000, desc:'Прагне дати 2x від денної зміни MSTR. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSTR',ticker:'MSTX', name:'Defiance Daily Target 2X Long MSTR ETF', p:'Defiance', type:'bull',lev:'2x', vol:389560000, desc:'Прагне дати 2x від денної зміни MSTR. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSTR',ticker:'MSTP', name:'GraniteShares 2x Long MSTR Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:15890000, desc:'Прагне дати 2x від денної зміни MSTR. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MSTR',ticker:'MSTZ', name:'T-Rex 2X Inverse MSTR Daily Target ETF', p:'T-Rex', type:'bear',lev:'-2x', vol:96380000, desc:'Зворотний ETF: прагне дати -2x від денної зміни MSTR — росте, коли MSTR падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'MSTR',ticker:'SMST', name:'Defiance Daily Target 2X Short MSTR ETF', p:'Defiance', type:'bear',lev:'-2x', vol:17620000, desc:'Зворотний ETF: прагне дати -2x від денної зміни MSTR — росте, коли MSTR падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'MSTR',ticker:'MSTY', name:'YieldMax MSTR Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:1160000000, desc:'Опціонна income-стратегія на MSTR: продаж опціонів дає високі, але нестабільні виплати. Зростання MSTR фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── PLTR ──
+  {u:'PLTR',ticker:'PLTU', name:'Direxion Daily PLTR Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:498310000, desc:'Прагне дати 2x від денної зміни PLTR. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'PLTR',ticker:'PTIR', name:'GraniteShares 2x Long PLTR Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:375180000, desc:'Прагне дати 2x від денної зміни PLTR. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'PLTR',ticker:'PLTD', name:'Direxion Daily PLTR Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:31140000, desc:'Зворотний ETF: прагне дати -1x від денної зміни PLTR — росте, коли PLTR падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'PLTR',ticker:'PLTZ', name:'Defiance Daily Target 2X Short PLTR ETF', p:'Defiance', type:'bear',lev:'-2x', vol:34260000, desc:'Зворотний ETF: прагне дати -2x від денної зміни PLTR — росте, коли PLTR падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'PLTR',ticker:'PLTY', name:'YieldMax PLTR Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:385350000, desc:'Опціонна income-стратегія на PLTR: продаж опціонів дає високі, але нестабільні виплати. Зростання PLTR фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── HOOD ──
+  {u:'HOOD',ticker:'ROBN', name:'T-Rex 2X Long HOOD Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:131490000, desc:'Прагне дати 2x від денної зміни HOOD. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'HOOD',ticker:'HOOX', name:'Defiance Daily Target 2X Long HOOD ETF', p:'Defiance', type:'bull',lev:'2x', vol:16200000, desc:'Прагне дати 2x від денної зміни HOOD. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'HOOD',ticker:'HODU', name:'Direxion Daily HOOD Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:13150000, desc:'Прагне дати 2x від денної зміни HOOD. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'HOOD',ticker:'HOOY', name:'YieldMax HOOD Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:162390000, desc:'Опціонна income-стратегія на HOOD: продаж опціонів дає високі, але нестабільні виплати. Зростання HOOD фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── SMCI ──
+  {u:'SMCI',ticker:'SMCX', name:'Defiance Daily Target 2X Long SMCI ETF', p:'Defiance', type:'bull',lev:'2x', vol:177150000, desc:'Прагне дати 2x від денної зміни SMCI. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'SMCI',ticker:'SMCL', name:'GraniteShares 2x Long SMCI Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:46010000, desc:'Прагне дати 2x від денної зміни SMCI. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'SMCI',ticker:'SMCY', name:'YieldMax SMCI Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:143600000, desc:'Опціонна income-стратегія на SMCI: продаж опціонів дає високі, але нестабільні виплати. Зростання SMCI фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── NFLX ──
+  {u:'NFLX',ticker:'NFXL', name:'Direxion Daily NFLX Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:130810000, desc:'Прагне дати 2x від денної зміни NFLX. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'NFLX',ticker:'NFLU', name:'T-Rex 2X Long NFLX Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:24400000, desc:'Прагне дати 2x від денної зміни NFLX. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'NFLX',ticker:'NFXS', name:'Direxion Daily NFLX Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:3700000, desc:'Зворотний ETF: прагне дати -1x від денної зміни NFLX — росте, коли NFLX падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'NFLX',ticker:'NFLY', name:'YieldMax NFLX Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:35220000, desc:'Опціонна income-стратегія на NFLX: продаж опціонів дає високі, але нестабільні виплати. Зростання NFLX фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── JPM ──
+  {u:'JPM',ticker:'JPO', name:'YieldMax JP Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:32180000, desc:'Опціонна income-стратегія на JPM: продаж опціонів дає високі, але нестабільні виплати. Зростання JPM фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── SNOW ──
+  {u:'SNOW',ticker:'SNOU', name:'T-Rex 2X Long SNOW Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:25350000, desc:'Прагне дати 2x від денної зміни SNOW. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'SNOW',ticker:'SNOY', name:'YieldMax SNOW Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:67620000, desc:'Опціонна income-стратегія на SNOW: продаж опціонів дає високі, але нестабільні виплати. Зростання SNOW фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── UBER ──
+  {u:'UBER',ticker:'UBRL', name:'GraniteShares 2x Long UBER Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:20970000, desc:'Прагне дати 2x від денної зміни UBER. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── MARA ──
+  {u:'MARA',ticker:'MRAL', name:'GraniteShares 2x Long MARA Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:53010000, desc:'Прагне дати 2x від денної зміни MARA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MARA',ticker:'MARO', name:'YieldMax MARA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:59770000, desc:'Опціонна income-стратегія на MARA: продаж опціонів дає високі, але нестабільні виплати. Зростання MARA фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── MU ──
+  {u:'MU',ticker:'MUU', name:'Direxion Daily MU Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:4620000000, desc:'Прагне дати 2x від денної зміни MU. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MU',ticker:'MULL', name:'GraniteShares 2x Long MU Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:849430000, desc:'Прагне дати 2x від денної зміни MU. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MU',ticker:'MUZ', name:'Defiance Daily Target 2X Short MU ETF', p:'Defiance', type:'bear',lev:'-2x', vol:32920000, desc:'Зворотний ETF: прагне дати -2x від денної зміни MU — росте, коли MU падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'MU',ticker:'MUD', name:'Direxion Daily MU Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:27610000, desc:'Зворотний ETF: прагне дати -1x від денної зміни MU — росте, коли MU падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  // ── AVGO ──
+  {u:'AVGO',ticker:'AVL', name:'Direxion Daily AVGO Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:268209999, desc:'Прагне дати 2x від денної зміни AVGO. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AVGO',ticker:'AVGX', name:'Defiance Daily Target 2X Long AVGO ETF', p:'Defiance', type:'bull',lev:'2x', vol:226680000, desc:'Прагне дати 2x від денної зміни AVGO. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AVGO',ticker:'AVGU', name:'GraniteShares 2x Long AVGO Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:36750000, desc:'Прагне дати 2x від денної зміни AVGO. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'AVGO',ticker:'AVS', name:'Direxion Daily AVGO Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:13450000, desc:'Зворотний ETF: прагне дати -1x від денної зміни AVGO — росте, коли AVGO падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  // ── BABA ──
+  {u:'BABA',ticker:'BABX', name:'GraniteShares 2x Long BABA Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:116950000, desc:'Прагне дати 2x від денної зміни BABA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'BABA',ticker:'BABU', name:'Direxion Daily BABA Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:6850000, desc:'Прагне дати 2x від денної зміни BABA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'BABA',ticker:'BABO', name:'YieldMax BABA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:13530000, desc:'Опціонна income-стратегія на BABA: продаж опціонів дає високі, але нестабільні виплати. Зростання BABA фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── PYPL ──
+  {u:'PYPL',ticker:'PYPU', name:'Direxion Daily PYPL Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:1530000, desc:'Прагне дати 2x від денної зміни PYPL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'PYPL',ticker:'PYPY', name:'YieldMax PYPL Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:15330000, desc:'Опціонна income-стратегія на PYPL: продаж опціонів дає високі, але нестабільні виплати. Зростання PYPL фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── XYZ ──
+  {u:'XYZ',ticker:'XYZY', name:'YieldMax XYZ Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:20210000, desc:'Опціонна income-стратегія на XYZ: продаж опціонів дає високі, але нестабільні виплати. Зростання XYZ фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── CVNA ──
+  {u:'CVNA',ticker:'CVNY', name:'YieldMax CVNA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:20440000, desc:'Опціонна income-стратегія на CVNA: продаж опціонів дає високі, але нестабільні виплати. Зростання CVNA фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── XOM ──
+  {u:'XOM',ticker:'XOMX', name:'Direxion Daily XOM Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:6830000, desc:'Прагне дати 2x від денної зміни XOM. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'XOM',ticker:'XOMO', name:'YieldMax XOM Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:38990000, desc:'Опціонна income-стратегія на XOM: продаж опціонів дає високі, але нестабільні виплати. Зростання XOM фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── PANW ──
+  {u:'PANW',ticker:'PALU', name:'Direxion Daily PANW Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:36290000, desc:'Прагне дати 2x від денної зміни PANW. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'PANW',ticker:'PALD', name:'Direxion Daily PANW Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:3020000, desc:'Зворотний ETF: прагне дати -1x від денної зміни PANW — росте, коли PANW падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  // ── SHOP ──
+  {u:'SHOP',ticker:'SHPU', name:'Direxion Daily SHOP Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:9550000, desc:'Прагне дати 2x від денної зміни SHOP. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── BA ──
+  {u:'BA',ticker:'BOEU', name:'Direxion Daily BA Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:20220000, desc:'Прагне дати 2x від денної зміни BA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── IONQ ──
+  {u:'IONQ',ticker:'IONX', name:'Defiance Daily Target 2X Long IONQ ETF', p:'Defiance', type:'bull',lev:'2x', vol:197320000, desc:'Прагне дати 2x від денної зміни IONQ. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'IONQ',ticker:'IONL', name:'GraniteShares 2x Long IONQ Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:89530000, desc:'Прагне дати 2x від денної зміни IONQ. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── TSM ──
+  {u:'TSM',ticker:'TSMX', name:'Direxion Daily TSM Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:589230000, desc:'Прагне дати 2x від денної зміни TSM. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSM',ticker:'TSMU', name:'GraniteShares 2x Long TSM Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:45710000, desc:'Прагне дати 2x від денної зміни TSM. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'TSM',ticker:'TSMZ', name:'Direxion Daily TSM Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:2660000, desc:'Зворотний ETF: прагне дати -1x від денної зміни TSM — росте, коли TSM падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'TSM',ticker:'TSMY', name:'YieldMax TSM Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:110890000, desc:'Опціонна income-стратегія на TSM: продаж опціонів дає високі, але нестабільні виплати. Зростання TSM фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── ADBE ──
+  {u:'ADBE',ticker:'ADBU', name:'Direxion Daily ADBE Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:3450000, desc:'Прагне дати 2x від денної зміни ADBE. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── ASML ──
+  {u:'ASML',ticker:'ASMU', name:'Direxion Daily ASML Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:9200000, desc:'Прагне дати 2x від денної зміни ASML. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── CSCO ──
+  {u:'CSCO',ticker:'CSCL', name:'Direxion Daily CSCO Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:16770000, desc:'Прагне дати 2x від денної зміни CSCO. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'CSCO',ticker:'CSCS', name:'Direxion Daily CSCO Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:2089999, desc:'Зворотний ETF: прагне дати -1x від денної зміни CSCO — росте, коли CSCO падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  // ── MRVL ──
+  {u:'MRVL',ticker:'MVLL', name:'GraniteShares 2x Long MRVL Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:448010000, desc:'Прагне дати 2x від денної зміни MRVL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MRVL',ticker:'MRVU', name:'Direxion Daily MRVL Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:131169999, desc:'Прагне дати 2x від денної зміни MRVL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── BRKB ──
+  {u:'BRKB',ticker:'BRKU', name:'Direxion Daily BRKB Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:39230000, desc:'Прагне дати 2x від денної зміни BRK.B. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'BRKB',ticker:'BRKC', name:'YieldMax BRK.B Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:7930000, desc:'Опціонна income-стратегія на BRK.B: продаж опціонів дає високі, але нестабільні виплати. Зростання BRK.B фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── GME ──
+  {u:'GME',ticker:'GMEU', name:'T-Rex 2X Long GME Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:22770000, desc:'Прагне дати 2x від денної зміни GME. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'GME',ticker:'GMEY', name:'YieldMax GME Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:3110000, desc:'Опціонна income-стратегія на GME: продаж опціонів дає високі, але нестабільні виплати. Зростання GME фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── RBLX ──
+  {u:'RBLX',ticker:'RBLU', name:'T-Rex 2X Long RBLX Daily Target ETF', p:'T-Rex', type:'bull',lev:'2x', vol:12050000, desc:'Прагне дати 2x від денної зміни RBLX. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'RBLX',ticker:'RBLY', name:'YieldMax RBLX Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:5500000, desc:'Опціонна income-стратегія на RBLX: продаж опціонів дає високі, але нестабільні виплати. Зростання RBLX фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── DKNG ──
+  {u:'DKNG',ticker:'DRAY', name:'YieldMax DKNG Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:2900000, desc:'Опціонна income-стратегія на DKNG: продаж опціонів дає високі, але нестабільні виплати. Зростання DKNG фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── RDDT ──
+  {u:'RDDT',ticker:'RDTL', name:'GraniteShares 2x Long RDDT Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:54330000, desc:'Прагне дати 2x від денної зміни RDDT. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'RDDT',ticker:'RDYY', name:'YieldMax RDDT Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:23810000, desc:'Опціонна income-стратегія на RDDT: продаж опціонів дає високі, але нестабільні виплати. Зростання RDDT фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── HIMS ──
+  {u:'HIMS',ticker:'HIYY', name:'YieldMax HIMS Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:13180000, desc:'Опціонна income-стратегія на HIMS: продаж опціонів дає високі, але нестабільні виплати. Зростання HIMS фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── CRCL ──
+  {u:'CRCL',ticker:'CRCO', name:'YieldMax CRCL Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:54280000, desc:'Опціонна income-стратегія на CRCL: продаж опціонів дає високі, але нестабільні виплати. Зростання CRCL фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── MRNA ──
+  {u:'MRNA',ticker:'MRNX', name:'Defiance Daily Target 2X Long MRNA ETF', p:'Defiance', type:'bull',lev:'2x', vol:24110000, desc:'Прагне дати 2x від денної зміни MRNA. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'MRNA',ticker:'MRNY', name:'YieldMax MRNA Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:214230000, desc:'Опціонна income-стратегія на MRNA: продаж опціонів дає високі, але нестабільні виплати. Зростання MRNA фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── AI ──
+  {u:'AI',ticker:'AIYY', name:'YieldMax AI Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:45470000, desc:'Опціонна income-стратегія на AI: продаж опціонів дає високі, але нестабільні виплати. Зростання AI фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── RIVN ──
+  {u:'RIVN',ticker:'RVNL', name:'GraniteShares 2x Long RIVN Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:11330000, desc:'Прагне дати 2x від денної зміни RIVN. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── SOFI ──
+  {u:'SOFI',ticker:'SOFX', name:'Defiance Daily Target 2X Long SOFI ETF', p:'Defiance', type:'bull',lev:'2x', vol:55430000, desc:'Прагне дати 2x від денної зміни SOFI. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'SOFI',ticker:'SOFA', name:'Direxion Daily SOFI Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:7660000, desc:'Прагне дати 2x від денної зміни SOFI. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  // ── INTC ──
+  {u:'INTC',ticker:'INTW', name:'GraniteShares 2x Long INTC Daily ETF', p:'GraniteShares', type:'bull',lev:'2x', vol:412310000, desc:'Прагне дати 2x від денної зміни INTC. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'INTC',ticker:'LINT', name:'Direxion Daily INTC Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:104350000, desc:'Прагне дати 2x від денної зміни INTC. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'INTC',ticker:'INYY', name:'YieldMax INTC Option Income Strategy ETF', p:'YieldMax', type:'cc',lev:'1x', vol:27010000, desc:'Опціонна income-стратегія на INTC: продаж опціонів дає високі, але нестабільні виплати. Зростання INTC фонд отримує лише частково, а падіння — майже повністю.'},
+  // ── ORCL ──
+  {u:'ORCL',ticker:'ORCX', name:'Defiance Daily Target 2X Long ORCL ETF', p:'Defiance', type:'bull',lev:'2x', vol:238660000, desc:'Прагне дати 2x від денної зміни ORCL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'ORCL',ticker:'ORCU', name:'Direxion Daily ORCL Bull 2X ETF', p:'Direxion', type:'bull',lev:'2x', vol:152100000, desc:'Прагне дати 2x від денної зміни ORCL. Плече скидається щодня, тож на горизонті понад один день результат відхиляється від 2x (volatility decay). Для короткострокової торгівлі.'},
+  {u:'ORCL',ticker:'ORCS', name:'Direxion Daily ORCL Bear 1X ETF', p:'Direxion', type:'bear',lev:'-1x', vol:7190000, desc:'Зворотний ETF: прагне дати -1x від денної зміни ORCL — росте, коли ORCL падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+  {u:'ORCL',ticker:'ORCZ', name:'Tradr 2X Short ORCL Daily ETF', p:'Tradr', type:'bear',lev:'-2x', vol:680020, desc:'Зворотний ETF: прагне дати -2x від денної зміни ORCL — росте, коли ORCL падає. Плече скидається щодня; інструмент для хеджу або короткої ставки на один-кілька днів.'},
+ ]
+};
+
+let curF='all', curS='';
+function init(){ updStats(); render(); }
+function updStats(){
+  document.getElementById('statS').textContent=DB.stocks.length;
+  document.getElementById('statE').textContent=DB.etfs.length;
+}
+function onSearch(){ curS=document.getElementById('si').value.trim().toUpperCase(); render(); }
+function setF(t,btn){
+  curF=t;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function tierV(v){ return v>=1e10?['Дуже великий','AUM > $10 млрд']:v>=1e9?['Великий','AUM $1–10 млрд']:v>=1e8?['Середній','AUM $100 млн–1 млрд']:['Малий','AUM < $100 млн']; }
+function fmtV(v){ return v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v.toString(); }
+
+function render(){
+  const area=document.getElementById('mainArea');
+  const ri=document.getElementById('ri');
+  let stocks=DB.stocks;
+  if(curS) stocks=stocks.filter(s=>s.ticker===curS);
+  let totalE=0, html='';
+  stocks.forEach(s=>{
+    let etfs=DB.etfs.filter(e=>e.u===s.ticker);
+    if(curF!=='all') etfs=etfs.filter(e=>e.type===curF);
+    if(!etfs.length) return;
+    etfs=etfs.slice().sort((a,b)=>b.vol-a.vol);
+    totalE+=etfs.length;
+    const cards=etfs.map(e=>{
+      const tc=e.type==='bull'?'tc-bull':e.type==='bear'?'tc-bear':'tc-cc';
+      const sv=e.type==='bull'?'sv-bull':e.type==='bear'?'sv-bear':'sv-cc';
+      const tl=e.type==='bull'?'▲ Leveraged Bull':e.type==='bear'?'▼ Inverse Bear':'◎ Covered Call';
+      return `<div class="etf-card">
+        <div class="ec-head">
+          <div class="ec-ticker ${tc}">${e.ticker}</div>
+          <div class="ec-name">${e.name}</div>
+          <div class="ec-type t-${e.type}">${tl}</div>
+        </div>
+        <div class="ec-body">
+          <div class="ec-desc">${e.desc}</div>
+          <div class="ec-stats">
+            <div class="ec-stat"><div class="ec-stat-val ${sv}">${e.lev}</div><div class="ec-stat-lbl">Leverage</div></div>
+            <div class="ec-stat"><div class="ec-stat-val">${tierV(e.vol)[0]}</div><div class="ec-stat-lbl">Розмір фонду · ${tierV(e.vol)[1]}</div></div>
+          </div>
+          <div class="ec-provider">Провайдер: ${e.p}</div>
+        </div>
+      </div>`;
+    }).join('');
+    html+=`<div class="stock-section">
+      <div class="stock-header">
+        <div class="stock-ticker">${s.ticker}</div>
+        <div><div class="stock-name">${s.name}</div><div class="stock-sector">${s.sector}</div></div>
+        <div class="stock-count">${etfs.length} ETF</div>
+      </div>
+      <div class="etf-grid">${cards}</div>
+    </div>`;
+  });
+  if(!html){
+    html=`<div class="empty"><div class="empty-icon">🔍</div>
+      <div class="empty-txt">${curS?'ETF для "'+curS+'" не знайдено':'Нічого не знайдено'}</div>
+      <div class="empty-sub">${curS?'Спробуй: NVDA TSLA AAPL AMZN MSFT GOOGL META COIN AMD MSTR PLTR MARA…':'Введи тікер у поле пошуку'}</div></div>`;
+    ri.textContent='';
+  } else {
+    ri.textContent=curS?`Знайдено ${totalE} ETF для ${curS}`:`Показано ${stocks.length} акцій · ${totalE} ETF`;
+  }
+  area.innerHTML=html;
+}
+function exportJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}));
+  a.download='lexx_single_stock_etf_db.json'; a.click();
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  new FileReader().onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.stocks||!d.etfs) throw new Error('Неправильна структура');
+      DB=d; updStats(); render();
+      alert('✓ База оновлена: '+DB.stocks.length+' акцій, '+DB.etfs.length+' ETF');
+    }catch(err){alert('Помилка: '+err.message);}
+  };
+  const r=new FileReader(); r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.stocks||!d.etfs)throw new Error('Неправильна структура');DB=d;updStats();render();alert('✓ Оновлено: '+DB.stocks.length+' акцій, '+DB.etfs.length+' ETF');}catch(err){alert('Помилка: '+err.message);}};
+  r.readAsText(f); ev.target.value='';
+}
+init();
+</script>
+</body>
+</html>
