@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Котировка та ордери</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: урок-лонгрід із нумерованими розділами (реальна послідовність уроку); після кожного розділу — інтерактив і перевірка */
+/* Стиль LEXX з презентації компанії: синій #1A4D89, темно-синій #123A69, помаранчевий акцент #E1823B, світло-блакитний #A9C1DE.
+   Шрифти презентації (Object Sans, DM Sans) не мають кирилиці у веб-версії, тому найближчий геометричний аналог — Manrope. */
+:root{
+  --bg:#e6ecf4; --surface:#ffffff; --sunk:#eef2f8; --ink:#123a69; --text:#2b3f5c; --muted:#5e6b78; --line:#cbd8e8;
+  --brand:#1a4d89; --brand-deep:#123a69; --brand-soft:#a9c1de; --on-brand:#ffffff;
+  --accent:#e1823b; --accent-ink:#ffffff; --accent-soft:#fbeadc;
+  --ok:#1d8a52; --ok-bg:#e2f3e9; --bad:#c03c33; --bad-bg:#f9e4e2; --neu:#5e6b78; --neu-bg:#e8ecf4;
+  --hawk:#c03c33; --dove:#1a4d89;
+  --display:"Manrope","Segoe UI",system-ui,sans-serif;
+  --body:"Manrope","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1d33; --surface:#123a69; --sunk:#0f2f55; --ink:#f1f5fb; --text:#d3deec; --muted:#a9c1de; --line:#2a5486;
+  --brand:#1a4d89; --brand-deep:#0b1d33; --brand-soft:#a9c1de; --on-brand:#ffffff;
+  --accent:#f0954f; --accent-ink:#1a0f06; --accent-soft:#3a2a22;
+  --ok:#5fd08f; --ok-bg:#163f35; --bad:#ff8a80; --bad-bg:#43262e; --neu:#a9c1de; --neu-bg:#1b416f;
+  --hawk:#ff8a80; --dove:#a9c1de; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1d33; --surface:#123a69; --sunk:#0f2f55; --ink:#f1f5fb; --text:#d3deec; --muted:#a9c1de; --line:#2a5486;
+  --brand:#1a4d89; --brand-deep:#0b1d33; --brand-soft:#a9c1de; --on-brand:#ffffff;
+  --accent:#f0954f; --accent-ink:#1a0f06; --accent-soft:#3a2a22;
+  --ok:#5fd08f; --ok-bg:#163f35; --bad:#ff8a80; --bad-bg:#43262e; --neu:#a9c1de; --neu-bg:#1b416f;
+  --hawk:#ff8a80; --dove:#a9c1de; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+
+header.hero{display:flex;flex-direction:column;gap:14px;background:var(--brand);color:var(--on-brand);border-radius:20px;padding:clamp(20px,4vw,36px)}
+.herotop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.herotop img.logo{height:30px;width:auto}
+.herotop img.marks{height:32px;width:auto;opacity:.9}
+header.hero h1{color:var(--on-brand)}
+header.hero .lead{color:#dbe6f3}
+header.hero .brand{color:var(--brand-soft)}
+header.hero .toc a{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25);color:var(--on-brand)}
+header.hero .toc a:hover{border-color:var(--accent);background:rgba(225,130,59,.18)}
+.brand{font-family:var(--display);font-weight:700;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.brand span{color:var(--accent)}
+h1{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.01em;font-size:clamp(1.8rem,5vw,2.8rem);line-height:1.12;color:var(--ink);margin:0;text-wrap:balance}
+.lead{font-size:1.08rem;max-width:62ch;margin:0}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.toc a{font-size:.82rem;font-weight:600;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.toc a:hover{border-color:var(--accent)}
+.progress{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+
+section.part{display:flex;flex-direction:column;gap:16px;scroll-margin-top:16px}
+.num{font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.01em;font-size:clamp(1.3rem,3.2vw,1.75rem);line-height:1.25;color:var(--ink);margin:0;text-wrap:balance}
+h3{font-size:1.05rem;color:var(--ink);margin:0}
+p{margin:0;max-width:66ch}
+.term{font-weight:700;color:var(--ink)}
+.en{font-family:var(--mono);font-size:.85em;color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,3vw,26px);display:flex;flex-direction:column;gap:14px;min-width:0}
+.tip{border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;padding:12px 16px;color:var(--ink)}
+.tip b{color:var(--accent)}
+.kicker{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.box{background:var(--sunk);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.box .big{font-family:var(--display);font-weight:700;font-size:1.6rem;color:var(--ink);line-height:1}
+.box small{color:var(--muted);font-size:.85rem;line-height:1.45}
+
+/* banks */
+.banks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bank{text-align:left;border:2px dashed var(--line);background:transparent;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.bank b{color:var(--muted);font-size:.95rem}
+.bank small{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.bank.vote{border:2px solid var(--accent);background:var(--accent-soft)}
+.bank.vote b{color:var(--ink)}
+.bank.vote small{color:var(--accent);font-weight:700}
+.bank.perm{border:2px solid var(--brand);background:var(--brand)}
+.bank.perm b,.bank.perm small{color:var(--on-brand)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend span::before{content:"";display:inline-block;width:14px;height:14px;border-radius:4px;flex:none;border:2px dashed var(--line);background:transparent}
+.legend .lv::before{border:2px solid var(--accent);background:var(--accent-soft)}
+.legend .lp::before{border:2px solid var(--brand);background:var(--brand)}
+.yearsel{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.yearsel button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:700}
+.yearsel b{font-family:var(--display);font-size:1.3rem;color:var(--ink);min-width:4ch;text-align:center}
+
+/* seats */
+.seats{display:flex;flex-wrap:wrap;gap:6px}
+.seat{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:.72rem;font-weight:700;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.seat.g{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.seat.ny{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.seat.r{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+
+/* timeline */
+.tl{display:flex;flex-direction:column;gap:0}
+.tli{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.tli:last-child{border-bottom:0}
+.tli .t{font-family:var(--mono);font-weight:700;color:var(--accent);font-size:.9rem}
+.tli p{font-size:.95rem}
+
+/* questions */
+.q{border-top:1px dashed var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.q:first-of-type{border-top:0;padding-top:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{text-align:left;font-weight:500;font-size:.98rem;padding:11px 14px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--muted)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt.pick{border-color:var(--accent);background:var(--accent-soft)}
+.fb{padding:10px 14px;border-radius:10px;font-size:.95rem;background:var(--sunk);color:var(--ink)}
+.fb.ok{background:var(--ok-bg)}.fb.no{background:var(--bad-bg)}
+
+/* tools */
+.tools{display:flex;flex-direction:column;gap:10px}
+.tool{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tool summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:700;color:var(--ink);background:var(--surface)}
+.tool summary::-webkit-details-marker{display:none}
+.tool summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.2rem}
+.tool[open] summary::after{content:"−"}
+.tool .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;font-size:.95rem}
+.tool summary .badge{margin-left:auto}
+.badge{font-family:var(--mono);font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.badge.main{background:var(--accent-soft);color:var(--accent)}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.segl{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{flex:1 1 90px;padding:10px 8px;border-radius:10px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:.92rem;color:var(--ink)}
+.seg button.on{border-color:var(--accent);background:var(--accent-soft)}
+.react{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ri{background:var(--sunk);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.ri small{color:var(--muted);font-size:.8rem}
+.ri b{font-family:var(--display);font-size:1.1rem}
+.up{color:var(--ok)}.down{color:var(--bad)}.flat{color:var(--neu)}
+.verdict{font-weight:700;color:var(--ink)}
+
+/* chart */
+.chartbox{overflow-x:auto}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.ev{cursor:pointer;outline:none}
+.ev:focus-visible circle:last-child{stroke-width:5}
+.chartinfo{min-height:48px}
+
+/* hawk/dove */
+.hd{display:flex;flex-direction:column;gap:10px}
+.phrase{background:var(--sunk);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.phrase p{color:var(--ink);font-style:italic}
+.hdbtns{display:flex;flex-wrap:wrap;gap:6px}
+.hdbtns button{flex:1 1 110px;padding:8px;border-radius:10px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:.9rem;color:var(--ink)}
+.hdbtns button.right{border-color:var(--ok);background:var(--ok-bg)}
+.hdbtns button.wrong{border-color:var(--bad);background:var(--bad-bg)}
+
+table{width:100%;border-collapse:collapse;font-size:.92rem;table-layout:fixed}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;hyphens:auto}
+td.y{white-space:normal!important}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+td.y{font-family:var(--mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tablebox{overflow-x:auto}
+
+/* final */
+.score{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--brand);color:var(--on-brand);border-radius:16px;padding:18px 22px}
+.score b{font-family:var(--display);font-size:2rem}
+.score span{color:var(--on-brand);opacity:.85}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 16px;font-weight:700;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+ .simple{border:1px dashed var(--line);border-radius:12px;padding:12px 16px;background:var(--surface)}
+.simple b{color:var(--ink)}
+.simple .kicker{display:block;margin-bottom:4px;color:var(--accent)}
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;counter-reset:st}
+.link{background:var(--sunk);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.link small{color:var(--muted);font-size:.78rem}
+.link b{font-family:var(--display);font-size:1.05rem;color:var(--ink)}
+.arrow{align-self:center;color:var(--accent);font-family:var(--mono);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.pol{border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;border:2px solid var(--line);background:var(--surface)}
+.pol.gas{border-color:var(--ok)}.pol.brake{border-color:var(--bad)}
+.pol h3{display:flex;gap:8px;align-items:center}
+.pol ul{margin:0;padding-left:18px;font-size:.95rem}
+.sort{display:flex;flex-direction:column;gap:8px}
+.sorti{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--sunk);border-radius:12px;padding:10px 12px}
+.sorti span{flex:1 1 220px;color:var(--ink);font-size:.95rem}
+.sorti .hdbtns{flex:0 1 240px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.gl{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.gl b{color:var(--ink)}
+.gl small{font-size:.88rem;line-height:1.45}
+ol.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+footer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:520px){.tli{grid-template-columns:72px 1fr}}
+</style>
+<style>
+/* Закріплена стрічка змісту */
+.stickynav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding-top:8px;margin-top:-10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--bg)}
+.snav{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.snav::-webkit-scrollbar{display:none}
+.snav a{flex:none;font-size:.82rem;font-weight:700;color:var(--ink);text-decoration:none;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.snav a:hover{border-color:var(--accent)}
+.snav a.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.snav a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stickynav .progress{position:static;margin:0}
+section.part{scroll-margin-top:72px}
+
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.calc label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.calc input{font:600 1.05rem var(--mono);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);width:100%;box-sizing:border-box}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.result{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.res{border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--sunk)}
+.res small{font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.res b{font-family:var(--display);font-weight:800;font-size:1.25rem;color:var(--ink);overflow-wrap:anywhere}
+.res.main{background:var(--brand)}.res.main small{color:var(--brand-soft)}.res.main b{color:#fff}
+.res.alarm{background:var(--bad)}.res.alarm small{color:#ffd9d4}.res.alarm b{color:#fff}
+/* котировка */
+.qbox{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.qt{width:100%;min-width:0;table-layout:auto;border-collapse:collapse;font-family:var(--mono);font-size:.92rem}
+table.qt th{font-family:var(--body);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 6px;text-align:center;border-bottom:2px solid var(--ink);white-space:nowrap}
+table.qt td{text-align:center;padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap;overflow-wrap:normal;hyphens:none}
+table.qt tr.top td{font-weight:700;font-size:1rem;color:var(--ink)}
+table.qt tr.ob td{color:var(--muted);font-size:.86rem}
+table.qt td.b{color:var(--ok)!important}table.qt td.a{color:var(--bad)!important}
+table.qt td.sep{color:var(--muted)!important;font-weight:400!important;padding:7px 0}
+table.qt td.chg{background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:-2px}
+table.qt td.click{cursor:pointer}
+table.qt td.click:hover{background:var(--sunk)}
+table.qt td.sel{background:var(--accent-soft)}
+.qhint{font-size:.82rem;color:var(--muted);margin:0}
+.explain{border-radius:14px;padding:14px 16px;background:var(--sunk);display:flex;flex-direction:column;gap:4px;min-height:84px}
+.explain b{color:var(--ink);font-size:1.02rem}
+.explain span{font-size:.94rem;line-height:1.5}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.rule1{border-radius:14px;padding:14px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.rule1 .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:.9rem}
+.rule1 small{color:var(--text);font-size:.9rem;line-height:1.45}
+.out4{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.o4{border-radius:12px;padding:12px;background:var(--sunk);border:2px solid transparent;display:flex;flex-direction:column;gap:4px;transition:.2s}
+.o4 b{color:var(--ink);font-size:.95rem}
+.o4 small{color:var(--muted);font-size:.8rem}
+.o4.on{border-color:var(--accent);background:var(--accent-soft)}
+.ordbtns{display:flex;flex-wrap:wrap;gap:6px}
+.ordbtns button{font:700 .86rem var(--mono);padding:9px 12px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.ordbtns button.on{border-color:var(--accent);background:var(--accent-soft)}
+.log{border-radius:12px;background:var(--sunk);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.log div{line-height:1.45}
+.log .pr{font-family:var(--mono);font-weight:700;color:var(--ink)}
+.prints{display:flex;flex-wrap:wrap;gap:6px}
+.prints span{font:700 .85rem var(--mono);padding:4px 9px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.prints span.trg{background:var(--accent);border-color:var(--accent);color:#fff}
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.stage button{font:700 .82rem var(--body);padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.stage button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.stage button.done{background:var(--accent-soft)}
+.stops{display:flex;flex-wrap:wrap;gap:6px}
+.stops span{font:700 .85rem var(--mono);padding:6px 10px;border-radius:999px;border:2px dashed var(--line);color:var(--ink)}
+.stops span.fired{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.stops span.done{opacity:.5;text-decoration:line-through}
+.useg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pos{color:var(--ok)!important}.neg{color:var(--bad)!important}
+/* DND */
+.queue{display:flex;flex-direction:column;gap:6px}
+.qi{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--sunk);border:2px solid transparent}
+.qi .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--surface);font-weight:800;font-size:.8rem;color:var(--ink)}
+.qi b{color:var(--ink)}
+.qi small{color:var(--muted);font-size:.82rem}
+.qi .lot{font:700 .85rem var(--mono);color:var(--ink);white-space:nowrap}
+.qi.hid{border-style:dashed;border-color:var(--line);background:transparent}
+.qi.next{border-color:var(--accent);background:var(--accent-soft)}
+.qi.gone{opacity:.35}
+.dndview{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dv{border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;background:var(--sunk)}
+.dv small{font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.dv b{font-family:var(--mono);font-size:1.3rem;color:var(--ink)}
+@media (max-width:520px){.useg,.dndview{grid-template-columns:1fr}table.qt{font-size:.74rem}table.qt tr.top td{font-size:.8rem}table.qt tr.ob td{font-size:.72rem}table.qt th{font-size:.56rem;letter-spacing:0;white-space:normal;overflow-wrap:normal;word-break:keep-all;hyphens:none;padding:6px 2px}table.qt td{padding:6px 2px}table.qt td.sep{padding:6px 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="herotop"><img class="logo" src="data:image/png;base64,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" alt="LEXX"><img class="marks" src="data:image/png;base64,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" alt="" aria-hidden="true"></div>
+  <div class="brand">LEXX International · Теоретичний курс</div>
+  <h1>Котировка та ордери</h1>
+  <p class="lead">Як читати котировку і що відбувається з нею після limit, market, stop і DND ордерів.</p>
+  <nav class="toc" aria-label="Зміст уроку">
+    <a href="#s1">1. Котировка</a><a href="#s2">2. Limit order</a><a href="#s3">3. Market order</a><a href="#s4">4. Stop order</a><a href="#s5">5. Черговість стопів</a><a href="#s6">6. Тригер без прінта</a><a href="#s7">7. DND order</a><a href="#s8">Тест</a>
+  </nav>
+</header>
+<nav class="stickynav" aria-label="Зміст уроку"><div class="snav" id="snav"></div><div class="progress" aria-hidden="true"><i id="prog"></i></div></nav>
+
+<!-- 1 -->
+<section class="part" id="s1">
+  <span class="num">Розділ 1</span>
+  <h2>Котировка</h2>
+  <p><span class="term">Котировка</span> — динамічна таблиця, яка показує поточні торгові умови для конкретної акції. Перший рядок — котировка, все нижче — ордери в <span class="term">openbook</span>.</p>
+  <div class="card">
+    <span class="kicker">Інтерактив · натисни на будь-яке поле першого рядка</span>
+    <div class="qbox" id="anat"></div>
+    <div class="explain" id="anatTxt"></div>
+    <div class="result" id="spread"></div>
+  </div>
+  <div class="rules">
+    <div class="rule1"><span class="n">1</span><small>Перший рядок — котировка, все нижче — ордери в openbook.</small></div>
+    <div class="rule1"><span class="n">2</span><small>Усі ордери в котировці та openbook — <b>лімітні</b> і чекають на виконання.</small></div>
+    <div class="rule1"><span class="n">3</span><small>Bid не може бути <b>вищим або рівним</b> Ask — інакше відбудеться негайна угода.</small></div>
+    <div class="rule1"><span class="n">4</span><small>На біржі завжди є покупці та продавці, незалежно від ціни акції ($1 чи $1000).</small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Перевір себе</span>
+    <div class="q" data-a="1"><h3>Ask 27.81. Покупець відправляє buy limit 27.85. За якою ціною буде угода?</h3>
+      <div class="opts"><button class="opt">27.85</button><button class="opt">27.81</button><button class="opt">27.83</button></div>
+      <div class="fb" hidden>Ask 27.81 прийшов на біржу раніше — угода за його ціною. Limit означає «за моєю ціною або краще».</div></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="part" id="s2">
+  <span class="num">Розділ 2</span>
+  <h2>Limit order</h2>
+  <p><span class="term">Limit order</span> — купити або продати за вказаною ціною <b>або краще</b>. Buy limit не виконається вище вашої ціни, sell limit — нижче.</p>
+  <div class="cols2">
+    <div class="box"><span class="big pos">+</span><small>Ордер виконається за вашою ціною або краще.</small></div>
+    <div class="box"><span class="big neg">−</span><small>Якщо акція рухається занадто швидко, можна не встигнути.</small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">4 варіанти · обери ордер і дивись, що стане з котировкою</span>
+    <div class="out4" id="out4">
+      <div class="o4"><b>Виконується повністю</b><small>є продавець / покупець на весь обсяг</small></div>
+      <div class="o4"><b>Виконується частково</b><small>залишок стає на котировку</small></div>
+      <div class="o4"><b>Йде в openbook</b><small>ціна гірша за поточний Bid / Ask</small></div>
+      <div class="o4"><b>Стає на котировку</b><small>ціна краща або рівна поточному Bid / Ask</small></div>
+    </div>
+    <div class="ordbtns" id="limBtns"></div>
+    <p class="qhint">До:</p><div class="qbox" id="limBefore"></div>
+    <p class="qhint">Після:</p><div class="qbox" id="limAfter"></div>
+    <div class="log" id="limLog"></div>
+  </div>
+  <div class="tip">Якщо ціна ліміту <b>дорівнює</b> поточному Bid (для покупки) чи Ask (для продажу), ордер теж стає на котировку — в чергу за тими, хто вже стоїть, і збільшує Bid size або Ask size.</div>
+</section>
+
+<!-- 3 -->
+<section class="part" id="s3">
+  <span class="num">Розділ 3</span>
+  <h2>Market order</h2>
+  <p><span class="term">Market order</span> — купити або продати за будь-якою ціною, яка є на ринку зараз. Вказуєте лише кількість. Виконується завжди, якщо торги не зупинені.</p>
+  <div class="cols2">
+    <div class="box"><span class="big pos">+</span><small>Гарантоване виконання.</small></div>
+    <div class="box"><span class="big neg">−</span><small>Може виконатися за поганою ціною, якщо акція рухається швидко.</small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Інтерактив · buy market «з'їдає» продавців по черзі</span>
+    <div class="seg" id="mSide"><button class="on" data-v="buy">Buy market</button><button data-v="sell">Sell market</button></div>
+    <label class="segl" for="mLots">Розмір: <b id="mLotsV" style="color:var(--ink)"></b></label>
+    <input type="range" id="mLots" min="1" max="20" step="1" value="7">
+    <div class="qbox" id="mQuote"></div>
+    <div class="prints" id="mPrints"></div>
+    <div class="result" id="mRes"></div>
+  </div>
+  <div class="cols2">
+    <div class="box"><span class="big">Ліквідні</span><small>BAC, XOM, KO, NIO: багато учасників і великі обсяги — погана ціна малоймовірна.</small></div>
+    <div class="box"><span class="big">Ризиковані</span><small>Волатильні й малоліквідні акції (малі компанії, акції на новинах): швидкий рух і широкий спред. Навіть у TSLA чи NVDA зі спредом $0.01 під час різкого руху ціна може бути гіршою.</small></div>
+  </div>
+  <div class="tip">Під час зупинки торгів (halt, LULD-пауза) market не виконається. На premarket і aftermarket брокери зазвичай приймають лише limit-ордери.</div>
+</section>
+
+<!-- 4 -->
+<section class="part" id="s4">
+  <span class="num">Розділ 4</span>
+  <h2>Stop order</h2>
+  <p><span class="term">Stop order</span> — «сплячий» market order. Коли ціна досягає вашого рівня (<span class="term">trigger</span>), стоп перетворюється на market і виконується.</p>
+  <div class="useg">
+    <div class="box"><span class="big">Long</span><small>Захист і фіксація прибутку — <b>stop sell</b>. Stop buy у long — докупівля.</small></div>
+    <div class="box"><span class="big">Short</span><small>Захист і фіксація прибутку — <b>stop buy</b>. Stop sell у short — допродаж.</small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Тригер прінтом · рухай ціну останньої угоди (LTP)</span>
+    <div class="seg" id="tgSide"><button class="on" data-v="buy">Stop buy 50.51</button><button data-v="sell">Stop sell 50.51</button></div>
+    <label class="segl" for="tgP">LTP: <b id="tgV" style="color:var(--ink)"></b></label>
+    <input type="range" id="tgP" min="50.40" max="50.62" step="0.01" value="50.47">
+    <div class="result" id="tgRes"></div>
+  </div>
+  <div class="cols2">
+    <div class="box"><span class="big">Stop buy X</span><small>Тригер — прінт <b>X або вище</b></small></div>
+    <div class="box"><span class="big">Stop sell Y</span><small>Тригер — прінт <b>Y або нижче</b></small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Приклад JPM · спершу ордер виконується повністю, потім перевіряємо стоп</span>
+    <div class="stops" id="jpmStops"></div>
+    <div class="qbox" id="jpmQ"></div>
+    <div class="prints" id="jpmPr"></div>
+    <div class="explain" id="jpmTxt"></div>
+    <div class="stage" id="jpmSt"></div>
+  </div>
+  <div class="tip">У більшості брокерів і платформ стопи працюють лише 9:30–16:00; на premarket і aftermarket — ні. Стоп не стоїть на біржі: його зберігає брокер і після тригера відправляє як market.</div>
+  <div class="cols2">
+    <div class="box"><span class="big pos">+</span><small>Не треба постійно стежити за позицією; страховка від великих втрат; можна тримати багато позицій.</small></div>
+    <div class="box"><span class="big neg">−</span><small>Стоп стає market — може виконатися за дуже поганою ціною.</small></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="part" id="s5">
+  <span class="num">Розділ 5</span>
+  <h2>Черговість стопів</h2>
+  <div class="rules">
+    <div class="rule1"><span class="n">1</span><small><b>Спочатку ціна.</b> Перевіряємо кожен прінт по черзі: чий стоп тригернув раніший прінт — той перший.</small></div>
+    <div class="rule1"><span class="n">2</span><small><b>Потім час.</b> Якщо один прінт тригерить кілька стопів одночасно — першим той, що відправлений раніше.</small></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Акція C · стопи: №1 Stop sell 50.36 × 2 (раніше), №2 Stop sell 50.39 × 1 (пізніше)</span>
+    <div class="seg" id="prMode"><button class="on" data-v="price">Пріоритет за ціною</button><button data-v="time">Пріоритет за часом</button></div>
+    <div class="stops" id="cStops"></div>
+    <div class="qbox" id="cQ"></div>
+    <div class="prints" id="cPr"></div>
+    <div class="explain" id="cTxt"></div>
+    <div class="stage" id="cSt"></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="part" id="s6">
+  <span class="num">Розділ 6</span>
+  <h2>Тригер без прінта</h2>
+  <p>Базовий тригер — LTP. Але стоп може спрацювати і <b>без угоди</b> — лише від зміни Bid або Ask.</p>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>Ордер</th><th>Тригер через LTP</th><th>Тригер без прінта</th></tr></thead>
+      <tbody><tr><td>Stop buy X</td><td>LTP ≥ X</td><td>Bid ≥ X</td></tr><tr><td>Stop sell Y</td><td>LTP ≤ Y</td><td>Ask ≤ Y</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <span class="kicker">Інтерактив · котировка змінюється без угоди</span>
+    <div class="seg" id="npEx"><button class="on" data-v="0">Stop buy 45.40</button><button data-v="1">Stop sell 61.80</button></div>
+    <div class="seg" id="npT"><button class="on" data-v="0">До</button><button data-v="1">Після</button></div>
+    <div class="qbox" id="npQ"></div>
+    <div class="result" id="npRes"></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Типова помилка · Bid 30.20 · Ask 30.25. Куди ставиш Stop buy?</span>
+    <div class="calc"><label for="errP">Ціна Stop buy, $<input id="errP" type="number" step="0.01" value="30.15"></label></div>
+    <div class="result" id="errRes"></div>
+  </div>
+  <div class="cols2">
+    <div class="box"><span class="big">Малоліквідні</span><small>Bid і Ask стрибають на великі відстані без угод.</small></div>
+    <div class="box"><span class="big">Помилка junior</span><small>Stop buy нижче поточного Bid або stop sell вище Ask — тригер миттєво, виконання за ринком.</small></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="part" id="s7">
+  <span class="num">Розділ 7</span>
+  <h2>DND (Do Not Display) order</h2>
+  <p><span class="term">DND</span> — limit order, що приховує реальний обсяг: іншим видно лише <b>1 лот</b>, доки весь обсяг не виконається. Потрібен у неліквідних акціях, щоб великий обсяг не налякав ринок і ціна не «втекла». У BAC та інших товстих акціях він не потрібен.</p>
+  <div class="dndview">
+    <div class="dv"><small>Ти відправив</small><b>Buy DND 10.00 × 100</b></div>
+    <div class="dv"><small>Інші бачать на Bid</small><b>10.00 × 1</b></div>
+  </div>
+  <div class="card">
+    <span class="kicker">Черга на ціні 10.00 · натисни «Прийшов продавець 1 лот»</span>
+    <div class="queue" id="dq"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dSell">Прийшов продавець 1 лот</button><button class="btn" id="dReset">Спочатку</button></div>
+    <div class="explain" id="dTxt"></div>
+  </div>
+  <div class="cols2">
+    <div class="box"><span class="big pos">+</span><small>Можна набрати великий обсяг за потрібною ціною, не лякаючи ринок.</small></div>
+    <div class="box"><span class="big neg">−</span><small>Менший rebate або додаткова плата; прихована частина виконується після всіх видимих ордерів за тією ж ціною.</small></div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="part" id="s8">
+  <span class="num">Підсумковий тест</span>
+  <h2>10 питань по темі</h2>
+  <div class="card" id="final"></div>
+  <div class="score"><span>Твій результат</span><b id="finalScore">0 / 10</b><button class="btn" id="finalReset">Пройти ще раз</button></div>
+</section>
+
+<footer>LEXX International · Теоретичний курс «Трейдери на всю голову».</footer>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
+  const f2 = v => (+v).toFixed(2);
+  const prog = $('#prog');
+  addEventListener('scroll', () => { const h = document.documentElement; prog.style.width = Math.min(100, h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight) * 100) + '%' }, {passive:true});
+  function wireQ(q, onDone){
+    const right = +q.dataset.a, opts = q.querySelectorAll('.opt'), fb = q.querySelector('.fb'), base = fb ? fb.textContent : '';
+    opts.forEach((o,i) => o.addEventListener('click', () => {
+      if (q.dataset.done) return; q.dataset.done = 1;
+      const ok = i === right;
+      opts.forEach((x,k) => { x.disabled = true; if (k === right) x.classList.add('right') });
+      if (!ok) o.classList.add('wrong');
+      if (fb){ fb.hidden = false; fb.className = 'fb ' + (ok ? 'ok' : 'no'); fb.textContent = (ok ? 'Правильно. ' : 'Не зовсім. ') + base }
+      onDone && onDone(ok);
+    }));
+  }
+  $$('section.part:not(#s8) .q').forEach(q => wireQ(q));
+  function seg(id, cb){ $$(id + ' button').forEach(b => b.addEventListener('click', () => { $$(id + ' button').forEach(x => x.classList.toggle('on', x === b)); cb() })) }
+  const segv = id => $(id + ' button.on').dataset.v;
+
+  // ---------- engine ----------
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function mk(t, ltp, lts, vol, bids, asks){ return {t, ltp, lts, vol, bids: bids.map(x => ({p:x[0], s:x[1]})), asks: asks.map(x => ({p:x[0], s:x[1]}))} }
+  function cross(Q, side, size, limit){
+    const book = side === 'buy' ? Q.asks : Q.bids, prints = [];
+    while (size > 0 && book.length){
+      const l = book[0];
+      if (limit != null && (side === 'buy' ? l.p > limit + 1e-9 : l.p < limit - 1e-9)) break;
+      const fill = Math.min(size, l.s); l.s -= fill; size -= fill;
+      prints.push({p:l.p, s:fill}); Q.ltp = l.p; Q.lts = fill; Q.vol += fill * 100;
+      if (!l.s) book.shift();
+    }
+    return {prints, rem:size};
+  }
+  function rest(Q, side, p, s){
+    const arr = side === 'buy' ? Q.bids : Q.asks;
+    for (let i = 0; i < arr.length; i++){
+      if (Math.abs(arr[i].p - p) < 1e-9){ arr[i].s += s; return }
+      if (side === 'buy' ? p > arr[i].p : p < arr[i].p){ arr.splice(i, 0, {p, s}); return }
+    }
+    arr.push({p, s});
+  }
+  function qhtml(Q, prev, opts){
+    opts = opts || {};
+    const rows = opts.rows || 4, top = ['t','ltp','lts','bid','ask','bs','as','vol'];
+    const cur = {t:Q.t, ltp:f2(Q.ltp), lts:Q.lts, bid:Q.bids[0] ? f2(Q.bids[0].p) : '—', ask:Q.asks[0] ? f2(Q.asks[0].p) : '—', bs:Q.bids[0] ? Q.bids[0].s : '—', as:Q.asks[0] ? Q.asks[0].s : '—', vol:Q.vol.toLocaleString('en-US')};
+    let pv = null;
+    if (prev) pv = {t:prev.t, ltp:f2(prev.ltp), lts:prev.lts, bid:prev.bids[0] ? f2(prev.bids[0].p) : '—', ask:prev.asks[0] ? f2(prev.asks[0].p) : '—', bs:prev.bids[0] ? prev.bids[0].s : '—', as:prev.asks[0] ? prev.asks[0].s : '—', vol:prev.vol.toLocaleString('en-US')};
+    const c = k => (pv && pv[k] != cur[k] ? ' chg' : '') + (opts.click ? ' click' : '');
+    let h = `<table class="qt"><thead><tr><th>Ticker</th><th>LTP</th><th>LTS</th><th>Bid</th><th></th><th>Ask</th><th>Bid size</th><th></th><th>Ask size</th><th>Volume</th></tr></thead><tbody>`;
+    h += `<tr class="top"><td class="${c('t')}" data-k="t">${cur.t}</td><td class="${c('ltp')}" data-k="ltp">${cur.ltp}</td><td class="${c('lts')}" data-k="lts">${cur.lts}</td><td class="b${c('bid')}" data-k="bid">${cur.bid}</td><td class="sep">*</td><td class="a${c('ask')}" data-k="ask">${cur.ask}</td><td class="b${c('bs')}" data-k="bs">${cur.bs}</td><td class="sep">*</td><td class="a${c('as')}" data-k="as">${cur.as}</td><td class="${c('vol')}" data-k="vol">${cur.vol}</td></tr>`;
+    for (let i = 1; i < rows; i++){
+      const b = Q.bids[i], a = Q.asks[i];
+      if (!b && !a) break;
+      h += `<tr class="ob"><td></td><td></td><td></td><td class="b">${b ? f2(b.p) : ''}</td><td></td><td class="a">${a ? f2(a.p) : ''}</td><td class="b">${b ? b.s : ''}</td><td></td><td class="a">${a ? a.s : ''}</td><td></td></tr>`;
+    }
+    return h + '</tbody></table>';
+  }
+  const prs = (arr, trg) => arr.map((p,i) => `<span class="${trg && trg.includes(i) ? 'trg' : ''}">${f2(p.p)} × ${p.s}</span>`).join('');
+
+  // ---------- 1. anatomy ----------
+  const BAC = mk('BAC', 27.80, 5, 45300, [[27.80,16],[27.79,12],[27.73,27],[27.70,2],[27.65,34]], [[27.81,23],[27.82,8],[27.83,18],[27.85,9],[27.87,4]]);
+  const AN = {t:['Ticker','Абревіатура (назва) акції.'], ltp:['LTP · Last trade price','Ціна останньої угоди — «прінт».'], lts:['LTS · Last trade size','Обсяг останньої угоди, в лотах.'], bid:['Bid','Найкраща (найвища) ціна на купівлю зараз.'], ask:['Ask','Найкраща (найнижча) ціна на продаж зараз.'], bs:['Bid size','Обсяг на Bid, в лотах.'], as:['Ask size','Обсяг на Ask, в лотах.'], vol:['Volume','Обсяг усіх угод за сесію на цей момент, в акціях.']};
+  $('#anat').innerHTML = qhtml(BAC, null, {rows:5, click:true});
+  const anShow = k => { $$('#anat td[data-k]').forEach(td => td.classList.toggle('sel', td.dataset.k === k)); $('#anatTxt').innerHTML = `<b>${AN[k][0]}</b><span>${AN[k][1]}</span>` };
+  $$('#anat td[data-k]').forEach(td => td.addEventListener('click', () => anShow(td.dataset.k)));
+  anShow('ltp');
+  $('#spread').innerHTML = `<div class="res"><small>Bid</small><b class="pos">27.80</b></div><div class="res"><small>Ask</small><b class="neg">27.81</b></div><div class="res main"><small>Спред = Ask − Bid</small><b>$0.01</b></div>`;
+
+  // ---------- 2. limit ----------
+  const ABC = () => mk('ABC', 25.40, 2, 22300, [[25.39,2],[25.36,5],[25.33,12]], [[25.41,4],[25.42,3],[25.45,7]]);
+  const LIM = [
+    ['Buy limit 25.41 × 2','buy',25.41,2,0,'За 25.41 є продавець із 4 лотами → купуємо 2 лоти за 25.41. Ask size 4 → 2, Volume +200.'],
+    ['Buy limit 25.41 × 5','buy',25.41,5,1,'За 25.41 лише 4 лоти → купуємо 4. Залишок 1 лот стає новим Bid 25.41 (за ціною нашого ліміту). Продавець 25.42 × 3 з openbook стає найкращим Ask.'],
+    ['Sell limit 25.42 × 2','sell',25.42,2,2,'Вже є продавець за кращою ціною 25.41 → наш ордер не виконується і йде в openbook. Котировка не змінюється.'],
+    ['Buy limit 25.40 × 3','buy',25.40,3,3,'25.41 нас не влаштовує. Але 25.40 краще за поточний Bid 25.39 → ордер стає на котировку: Bid 25.40 × 3.']
+  ];
+  $('#limBtns').innerHTML = LIM.map((x,i) => `<button data-i="${i}">${x[0]}</button>`).join('');
+  function lim(i){
+    const x = LIM[i], Q = ABC(), P = clone(Q);
+    const r = cross(Q, x[1], x[3], x[2]); if (r.rem) rest(Q, x[1], x[2], r.rem);
+    $$('#limBtns button').forEach((b,k) => b.classList.toggle('on', k === i));
+    $$('#out4 .o4').forEach((o,k) => o.classList.toggle('on', k === x[4]));
+    $('#limBefore').innerHTML = qhtml(P, null, {rows:3}); $('#limAfter').innerHTML = qhtml(Q, P, {rows:3});
+    $('#limLog').innerHTML = (r.prints.length ? `<div class="prints">${prs(r.prints)}</div>` : '') + `<div>${x[5]}</div>`;
+  }
+  $$('#limBtns button').forEach(b => b.addEventListener('click', () => lim(+b.dataset.i))); lim(1);
+
+  // ---------- 3. market ----------
+  const M0 = () => mk('ABC', 74.50, 2, 45200, [[74.51,4],[74.47,7],[74.45,5],[74.40,9]], [[74.53,5],[74.55,8],[74.58,4],[74.62,6]]);
+  function mkt(){
+    const side = segv('#mSide'), n = +$('#mLots').value, Q = M0(), P = clone(Q);
+    $('#mLotsV').textContent = n + ' лот' + (n === 1 ? '' : n < 5 ? 'и' : 'ів');
+    const r = cross(Q, side, n, null);
+    $('#mQuote').innerHTML = qhtml(Q, P, {rows:4});
+    $('#mPrints').innerHTML = prs(r.prints);
+    const avg = r.prints.reduce((a,p) => a + p.p * p.s, 0) / n, best = side === 'buy' ? P.asks[0].p : P.bids[0].p, slip = Math.abs(avg - best);
+    $('#mRes').innerHTML = `<div class="res"><small>Найкраща ціна була</small><b>${f2(best)}</b></div><div class="res main"><small>Середня ціна виконання</small><b>${avg.toFixed(3)}</b></div><div class="res ${slip > 0.02 ? 'alarm' : ''}"><small>Гірше на</small><b>$${slip.toFixed(3)} / акцію</b></div>`;
+  }
+  $('#mLots').addEventListener('input', mkt); seg('#mSide', mkt); mkt();
+
+  // ---------- 4. trigger slider ----------
+  function tg(){
+    const side = segv('#tgSide'), p = +$('#tgP').value, hit = side === 'buy' ? p >= 50.51 - 1e-9 : p <= 50.51 + 1e-9;
+    $('#tgV').textContent = f2(p);
+    $('#tgRes').innerHTML = hit ? `<div class="res alarm"><small>Тригер</small><b>Stop ${side} → ${side} market</b></div>` : `<div class="res"><small>Тригера немає</small><b>Стоп «спить»</b></div><div class="res"><small>Умова</small><b>прінт ${side === 'buy' ? '≥' : '≤'} 50.51</b></div>`;
+  }
+  $('#tgP').addEventListener('input', tg); seg('#tgSide', tg); tg();
+
+  // generic step player
+  function player(stId, steps, draw){
+    let i = 0;
+    $(stId).innerHTML = steps.map((s,k) => `<button data-i="${k}">${k + 1}. ${s.h}</button>`).join('');
+    const go = () => { $$(stId + ' button').forEach((b,k) => { b.classList.toggle('on', k === i); b.classList.toggle('done', k < i) }); draw(steps[i]) };
+    $$(stId + ' button').forEach(b => b.addEventListener('click', () => { i = +b.dataset.i; go() }));
+    go();
+    return {reset: s => { steps = s; i = 0; $(stId).innerHTML = steps.map((s,k) => `<button data-i="${k}">${k + 1}. ${s.h}</button>`).join(''); $$(stId + ' button').forEach(b => b.addEventListener('click', () => { i = +b.dataset.i; go() })); go() }};
+  }
+
+  // ---------- 4. JPM ----------
+  const J0 = mk('JPM', 99.27, 4, 19900, [[99.25,5],[99.23,3],[99.20,3],[99.18,2]], [[99.30,2],[99.33,1],[99.38,3],[99.40,5]]);
+  const J1 = clone(J0), r1 = cross(J1, 'buy', 4, null), J2 = clone(J1), r2 = cross(J2, 'buy', 1, null);
+  const JS = [
+    {h:'Старт', q:J0, p:null, pr:[], st:'', t:'Є Stop buy 99.34 × 1. Приходить Buy market 4.'},
+    {h:'Market 4', q:J1, p:J0, pr:r1.prints, trg:[], st:'', t:'Спершу Buy market 4 виконується повністю: три прінти 99.30, 99.33, 99.38.'},
+    {h:'Перевірка', q:J1, p:J0, pr:r1.prints, trg:[2], st:'fired', t:'99.30 і 99.33 — нижче 99.34, тригера немає. 99.38 ≥ 99.34 — тригер! Stop buy 99.34 → Buy market 1.'},
+    {h:'Стоп', q:J2, p:J1, pr:r2.prints, trg:[], st:'done', t:'Buy market 1 виконується за 99.38. Ask size 2 → 1, Volume 20 400.'}
+  ];
+  player('#jpmSt', JS, s => {
+    $('#jpmQ').innerHTML = qhtml(s.q, s.p, {rows:4}); $('#jpmPr').innerHTML = prs(s.pr, s.trg);
+    $('#jpmStops').innerHTML = `<span class="${s.st}">Stop buy 99.34 × 1</span>`; $('#jpmTxt').innerHTML = `<span>${s.t}</span>`;
+  });
+
+  // ---------- 5. priority ----------
+  function cSteps(mode){
+    const C0 = mode === 'price' ? mk('C', 50.40, 2, 305000, [[50.40,1],[50.38,2],[50.36,2],[50.35,10]], [[50.42,3],[50.43,1],[50.44,2],[50.48,4]])
+                                : mk('C', 50.40, 2, 305000, [[50.40,1],[50.36,2],[50.35,10],[50.33,5]], [[50.42,3],[50.43,1],[50.44,2],[50.48,4]]);
+    const A = clone(C0), ra = mode === 'price' ? cross(A, 'sell', 5, 50.36) : cross(A, 'sell', 3, null);
+    const first = mode === 'price' ? [2,1] : [1,2];
+    const B = clone(A), rb = cross(B, 'sell', first[0] === 1 ? 2 : 1, null), D = clone(B), rd = cross(D, 'sell', first[1] === 1 ? 2 : 1, null);
+    const ord = mode === 'price' ? 'Sell limit 50.36 × 5' : 'Sell market 3';
+    const trgIdx = mode === 'price' ? [1,2] : [1];
+    const why = mode === 'price'
+      ? 'Прінт 50.40 — нікого. Прінт 50.38 тригерить №2 (50.38 ≤ 50.39). Прінт 50.36 тригерить №1. №2 тригернув раніший прінт → <b>№2 перший</b>, хоча відправлений пізніше.'
+      : 'Прінт 50.40 — нікого. Один прінт 50.36 тригерить обидва стопи одночасно → пріоритет за часом: <b>№1 перший</b> (відправлений раніше), хоча ціна №2 вища.';
+    const lbl = n => n === 1 ? '№1 Stop sell 50.36 × 2 → Sell market 2' : '№2 Stop sell 50.39 × 1 → Sell market 1';
+    return [
+      {h:'Старт', q:C0, p:null, pr:[], s:[0,0], t:`Приходить <b>${ord}</b>.`},
+      {h:'Ордер', q:A, p:C0, pr:ra.prints, trg:trgIdx, s:[1,1], t:'Ордер виконується повністю. ' + why},
+      {h:'Перший', q:B, p:A, pr:rb.prints, s:first[0] === 1 ? [2,1] : [1,2], t:lbl(first[0]) + '.'},
+      {h:'Другий', q:D, p:B, pr:rd.prints, s:[2,2], t:lbl(first[1]) + '.'}
+    ];
+  }
+  const stopTag = (n, s) => `<span class="${s === 1 ? 'fired' : s === 2 ? 'done' : ''}">№${n} Stop sell ${n === 1 ? '50.36 × 2' : '50.39 × 1'}</span>`;
+  const cDraw = s => { $('#cQ').innerHTML = qhtml(s.q, s.p, {rows:4}); $('#cPr').innerHTML = prs(s.pr, s.trg); $('#cStops').innerHTML = stopTag(1, s.s[0]) + stopTag(2, s.s[1]); $('#cTxt').innerHTML = `<span>${s.t}</span>` };
+  const cp = player('#cSt', cSteps('price'), cDraw);
+  seg('#prMode', () => cp.reset(cSteps(segv('#prMode'))));
+
+  // ---------- 6. no print ----------
+  const NP = [
+    [mk('ABC',45.30,2,82000,[[45.20,3]],[[45.50,5]]), mk('ABC',45.30,2,82000,[[45.42,3]],[[45.56,5]]), 'Stop buy 45.40', 'Bid 45.42 ≥ 45.40'],
+    [mk('XYZ',62.10,1,315000,[[61.90,4]],[[62.20,6]]), mk('XYZ',62.10,1,315000,[[61.60,4]],[[61.75,6]]), 'Stop sell 61.80', 'Ask 61.75 ≤ 61.80']
+  ];
+  function np(){
+    const e = NP[+segv('#npEx')], after = segv('#npT') === '1';
+    $('#npQ').innerHTML = qhtml(after ? e[1] : e[0], after ? e[0] : null, {rows:1});
+    $('#npRes').innerHTML = after
+      ? `<div class="res alarm"><small>Тригер без прінта · ${e[3]}</small><b>${e[2]} → market</b></div><div class="res"><small>LTP</small><b>не змінився</b></div>`
+      : `<div class="res"><small>${e[2]}</small><b>Тригера немає</b></div>`;
+  }
+  seg('#npEx', np); seg('#npT', np); np();
+  function err(){
+    const p = +$('#errP').value || 0;
+    $('#errRes').innerHTML = p <= 30.20
+      ? `<div class="res alarm"><small>Bid 30.20 ≥ ${f2(p)}</small><b>Миттєвий тригер!</b></div><div class="res"><small>Що буде</small><b>Buy market одразу за 30.25</b></div>`
+      : `<div class="res main"><small>Стоп чекає</small><b>Тригер: прінт ≥ ${f2(p)} або Bid ≥ ${f2(p)}</b></div>`;
+  }
+  $('#errP').addEventListener('input', err); err();
+
+  // ---------- 7. DND ----------
+  const DQ0 = [['Трейдер A','видимий',2,false],['Трейдер B','видимий',1,false],['Твій DND','видно 1 лот · приховано 99',100,true]];
+  let DQ, dLog;
+  function dDraw(){
+    let nextI = DQ.findIndex(x => x[2] > 0 && !x[3]); if (nextI < 0) nextI = DQ.findIndex(x => x[2] > 0);
+    $('#dq').innerHTML = DQ.map((x,i) => `<div class="qi ${x[3] ? 'hid' : ''} ${i === nextI ? 'next' : ''} ${x[2] === 0 ? 'gone' : ''}"><span class="n">${i + 1}</span><span><b>${x[0]}</b><br><small>${x[3] ? 'видно 1 лот · приховано ' + Math.max(0, x[2] - 1) : x[1]}</small></span><span class="lot">${x[2]} лот.</span></div>`).join('');
+    $('#dTxt').innerHTML = `<span>${dLog}</span>`;
+  }
+  function dReset(){ DQ = clone(DQ0); dLog = 'Усі троє стоять на Bid 10.00. Інші бачать Bid size 2 + 1 + 1 = 4 лоти.'; dDraw() }
+  $('#dSell').addEventListener('click', () => {
+    let i = DQ.findIndex(x => x[2] > 0 && !x[3]); if (i < 0) i = DQ.findIndex(x => x[2] > 0); if (i < 0) return;
+    DQ[i][2]--;
+    dLog = DQ[i][3] ? 'Видимих ордерів за 10.00 більше немає — виконується твій DND. Наступний лот знову показується як 1 лот.' : `Виконується <b>${DQ[i][0]}</b>: видимі ордери за тією ж ціною мають пріоритет перед прихованою частиною DND.`;
+    dDraw();
+  });
+  $('#dReset').addEventListener('click', dReset); dReset();
+
+  // ---------- 8. final ----------
+  const F = [
+    ['Що таке LTP?',['Найкраща ціна покупців','Ціна останньої угоди (прінт)','Обсяг за сесію'],1,'Last trade price — ціна останньої угоди.'],
+    ['Bid 27.80, Ask 27.81. Спред дорівнює…',['$0.01','$0.02','$27.81'],0,'Спред = Ask − Bid.'],
+    ['Котировка 25.39 * 25.41. Buy limit 25.40 × 3 — що буде?',['Угода за 25.41','Ордер стає на котировку: Bid 25.40 × 3','Ордер іде в openbook'],1,'25.40 краще за поточний Bid 25.39.'],
+    ['Котировка 25.39 * 25.41. Sell limit 25.42 × 2 — що буде?',['Угода за 25.39','Ордер іде в openbook','Ask стає 25.42'],1,'Вже є продавець за кращою ціною 25.41.'],
+    ['Buy limit 25.41 × 5, на Ask 25.41 лише 4 лоти. Що з залишком?',['Скасовується','Стає новим Bid 25.41 × 1','Купується за 25.42'],1,'Ліміт не виконається вище 25.41 — залишок стає на котировку.'],
+    ['Коли market order може НЕ виконатися?',['Ніколи','Під час зупинки торгів (halt)','Якщо спред $0.01'],1,'Під час halt (LULD-паузи) угод немає.'],
+    ['Ти в long. Який стоп ставиш для захисту?',['Stop buy','Stop sell','Будь-який'],1,'Long захищається stop sell, short — stop buy.'],
+    ['Stop sell 50.36. Який прінт його тригерить?',['50.37','50.35','50.40'],1,'Stop sell Y — прінт Y або нижче.'],
+    ['Один прінт тригерить два стопи. Хто перший?',['Той, у кого вища ціна','Той, що відправлений раніше','Більший за обсягом'],1,'Пріоритет за часом.'],
+    ['Bid 30.20. Трейдер ставить Stop buy 30.15. Що станеться?',['Стоп чекає прінта 30.15','Миттєвий тригер без прінта — buy market','Стоп відхиляється'],1,'Bid 30.20 ≥ 30.15 → тригер без прінта.']
+  ];
+  let fs = 0, fd = 0;
+  function drawFinal(){
+    fs = 0; fd = 0; $('#finalScore').textContent = `0 / ${F.length}`;
+    $('#final').innerHTML = F.map((x,i) => `<div class="q" data-a="${x[2]}"><h3>${i+1}. ${x[0]}</h3><div class="opts">${x[1].map(o => `<button class="opt">${o}</button>`).join('')}</div><div class="fb" hidden>${x[3]}</div></div>`).join('');
+    $$('#final .q').forEach(q => wireQ(q, ok => { fd++; if (ok) fs++; $('#finalScore').textContent = `${fs} / ${F.length}` + (fd === F.length ? (fs >= 9 ? ' · відмінно' : fs >= 6 ? ' · добре' : ' · перечитай урок') : '') }));
+  }
+  $('#finalReset').addEventListener('click', drawFinal); drawFinal();
+})();
+</script>
+<script>
+(function(){
+  var nav = document.getElementById('snav'), src = document.querySelectorAll('header.hero .toc a');
+  if (!nav || !src.length) return;
+  nav.innerHTML = Array.prototype.map.call(src, function(a){ return '<a href="' + a.getAttribute('href') + '">' + a.textContent + '</a>' }).join('');
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a')), secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')) });
+  function spy(){
+    var y = 90, cur = -1;
+    secs.forEach(function(s, i){ if (s && s.getBoundingClientRect().top <= y) cur = i });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) cur = secs.length - 1;
+    links.forEach(function(a, i){ a.classList.toggle('on', i === cur) });
+    var on = links[cur];
+    if (on){ var l = on.offsetLeft, r = l + on.offsetWidth; if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollTo({left: l - 16, behavior: 'smooth'}) }
+  }
+  addEventListener('scroll', spy, {passive:true}); spy();
+})();
+</script>
+
+</body>
+</html>
